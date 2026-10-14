@@ -1,26 +1,51 @@
 
+import type { Organization } from "../../features/organizations/mocks/organizations.mock";
+
 type HeaderProps = {
     userName: string;
-    organizationName: string;
     userRole: string;
+    organizationName: string;
+    organizations: Organization[];
+    activeOrganizationId: string;
+    onOrganizationChange: (id: string) => void;
 };
 
 export function Header({
     userName,
-    organizationName,
     userRole,
+    organizationName,
+    organizations,
+    activeOrganizationId,
+    onOrganizationChange,
 }: HeaderProps) {
     return (
         <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <label
+                        htmlFor="organization-select"
+                        className="block text-xs font-medium uppercase tracking-wide text-slate-500"
+                    >
                         Organização ativa
-                    </p>
+                    </label>
 
-                    <h2 className="truncate text-lg font-semibold text-slate-900">
-                        {organizationName}
-                    </h2>
+                    <select
+                        id="organization-select"
+                        value={activeOrganizationId}
+                        onChange={(event) => onOrganizationChange(event.target.value)}
+                        className="mt-1 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+                        aria-label="Selecionar organização ativa"
+                    >
+                        {organizations.map((organization) => (
+                            <option key={organization.id} value={organization.id}>
+                                {organization.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <p className="sr-only">
+                        Organização selecionada: {organizationName}
+                    </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -32,10 +57,7 @@ export function Header({
                         <p className="text-sm font-semibold text-slate-900">
                             {userName}
                         </p>
-
-                        <p className="text-xs text-slate-500">
-                            {userRole}
-                        </p>
+                        <p className="text-xs text-slate-500">{userRole}</p>
                     </div>
 
                     <div
