@@ -5,10 +5,10 @@ import type { MockUser } from "../../features/auth/mocks/users.mock";
 type HeaderProps = {
     userName: string;
     userRole: string;
-    organizationName: string;
-    organizations: Organization[];
-    activeOrganizationId: string;
-    onOrganizationChange: (id: string) => void;
+    organizationName?: string;
+    organizations?: Organization[];
+    activeOrganizationId?: string;
+    onOrganizationChange?: (id: string) => void;
     users: MockUser[];
     activeUserId: string;
     onUserChange: (id: string) => void;
@@ -18,42 +18,63 @@ export function Header({
     userName,
     userRole,
     organizationName,
-    organizations,
+    organizations = [],
     activeOrganizationId,
     onOrganizationChange,
     users,
     activeUserId,
     onUserChange,
 }: HeaderProps) {
+    const showOrganizationSelector =
+        organizations.length > 0 &&
+        activeOrganizationId !== undefined &&
+        onOrganizationChange !== undefined;
+
     return (
         <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
-                    <label
-                        htmlFor="organization-select"
-                        className="block text-xs font-medium uppercase tracking-wide text-slate-500"
-                    >
-                        Organização ativa
-                    </label>
+                    {showOrganizationSelector ? (
+                        <>
+                            <label
+                                htmlFor="organization-select"
+                                className="block text-xs font-medium uppercase tracking-wide text-slate-500"
+                            >
+                                Organização ativa
+                            </label>
 
-                    <select
-                        id="organization-select"
-                        value={activeOrganizationId}
-                        onChange={(event) =>
-                            onOrganizationChange(event.target.value)
-                        }
-                        className="mt-1 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
-                    >
-                        {organizations.map((organization) => (
-                            <option key={organization.id} value={organization.id}>
-                                {organization.name}
-                            </option>
-                        ))}
-                    </select>
+                            <select
+                                id="organization-select"
+                                value={activeOrganizationId}
+                                onChange={(event) =>
+                                    onOrganizationChange(event.target.value)
+                                }
+                                className="mt-1 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+                            >
+                                {organizations.map((organization) => (
+                                    <option
+                                        key={organization.id}
+                                        value={organization.id}
+                                    >
+                                        {organization.name}
+                                    </option>
+                                ))}
+                            </select>
 
-                    <p className="sr-only">
-                        Organização selecionada: {organizationName}
-                    </p>
+                            <p className="sr-only">
+                                Organização selecionada: {organizationName}
+                            </p>
+                        </>
+                    ) : (
+                        <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                Ambiente
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900">
+                                Portal do Comprador
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
