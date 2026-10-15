@@ -1,13 +1,38 @@
 
 import { createBrowserRouter } from "react-router-dom";
-import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
+
 import { AppLayout } from "../shared/components/AppLayout";
-import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
+import { BuyerLayout } from "../shared/components/BuyerLayout";
 import { FeaturePlaceholder } from "../shared/pages/FeaturePlaceholder";
+
+import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
+import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { SupplierProducts } from "../features/products/pages/SupplierProducts";
 import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
 
+import { BuyerCart } from "../features/cart/pages/BuyerCart";
+import { BuyerPurchases } from "../features/purchases/pages/BuyerPurchases";
+import { BuyerPurchaseDetails } from "../features/purchases/pages/BuyerPurchaseDetails";
+
 export const router = createBrowserRouter([
+  {
+    path: "/comprador",
+    element: <BuyerLayout />,
+    children: [
+      {
+        path: "carrinho",
+        element: <BuyerCart />,
+      },
+      {
+        path: "compras",
+        element: <BuyerPurchases />,
+      },
+      {
+        path: "compras/:purchaseId",
+        element: <BuyerPurchaseDetails />,
+      },
+    ],
+  },
   {
     path: "/",
     element: <AppLayout />,
@@ -17,6 +42,7 @@ export const router = createBrowserRouter([
           <h1 className="text-xl font-semibold text-slate-900">
             Página não encontrada
           </h1>
+
           <p className="mt-2 text-sm text-slate-600">
             Não foi possível acessar a página solicitada.
           </p>

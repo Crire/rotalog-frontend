@@ -24,6 +24,7 @@ export type Permission =
     | "products:view"
     | "inventory:view"
     | "routes:view"
+    | "purchases:view"
     | "organizations:manage";
 
 export type MockUser = {
@@ -70,5 +71,12 @@ export const usersMock: MockUser[] = [
             "routes:view",
             "organizations:manage",
         ],
+    },
+    {
+        id: "user-004",
+        name: "Usuário Comprador",
+        role: "BUYER_ADMIN",
+        organizationIds: [],
+        permissions: ["purchases:view"],
     },
 ];

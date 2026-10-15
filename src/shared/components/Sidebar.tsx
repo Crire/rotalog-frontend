@@ -4,12 +4,34 @@ import { NavLink } from "react-router-dom";
 import { appRoutes } from "../../app/routePermissions";
 import type { Permission } from "../../features/auth/mocks/users.mock";
 
+type PortalType = "supplier" | "buyer";
+
 type SidebarProps = {
     permissions: Permission[];
+    portal?: PortalType;
 };
 
-export function Sidebar({ permissions }: SidebarProps) {
-    const visibleItems = appRoutes.filter((route) =>
+const buyerRoutes = [
+    {
+        path: "/comprador/carrinho",
+        label: "Meu carrinho",
+        permission: "purchases:view" as Permission,
+    },
+    {
+        path: "/comprador/compras",
+        label: "Minhas compras",
+        permission: "purchases:view" as Permission,
+    },
+];
+
+export function Sidebar({
+    permissions,
+    portal = "supplier",
+}: SidebarProps) {
+    const routes =
+        portal === "buyer" ? buyerRoutes : appRoutes;
+
+    const visibleItems = routes.filter((route) =>
         permissions.includes(route.permission)
     );
 
@@ -21,7 +43,9 @@ export function Sidebar({ permissions }: SidebarProps) {
                 </h1>
 
                 <p className="text-sm text-slate-400">
-                    Portal do Fornecedor
+                    {portal === "buyer"
+                        ? "Portal do Comprador"
+                        : "Portal do Fornecedor"}
                 </p>
             </div>
 
@@ -30,7 +54,10 @@ export function Sidebar({ permissions }: SidebarProps) {
                     <NavLink
                         key={route.path}
                         to={route.path}
-                        end={route.path === "/"}
+                        end={
+                            route.path === "/" ||
+                            route.path === "/comprador/carrinho"
+                        }
                         className={({ isActive }) =>
                             `block rounded-lg px-4 py-3 text-sm transition-colors ${isActive
                                 ? "bg-blue-600 text-white"
