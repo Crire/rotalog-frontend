@@ -1,27 +1,57 @@
+
 import { createBrowserRouter } from "react-router-dom";
+import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { AppLayout } from "../shared/components/AppLayout";
+import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
+import { FeaturePlaceholder } from "../shared/pages/FeaturePlaceholder";
+import { SupplierProducts } from "../features/products/pages/SupplierProducts";
+import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
     errorElement: (
-      <div className="p-8 text-center text-red-600">
-        <h2 className="text-xl font-bold">Ocorreu um erro inesperado.</h2>
-        <p className="text-sm mt-2 text-slate-600">Verifique os logs ou tente recarregar a página.</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+        <div className="rounded-xl bg-white p-6 text-center shadow-sm">
+          <h1 className="text-xl font-semibold text-slate-900">
+            Página não encontrada
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Não foi possível acessar a página solicitada.
+          </p>
+        </div>
       </div>
     ),
     children: [
       {
         index: true,
+        element: <SupplierDashboard />,
+      },
+      {
+        path: "pedidos",
+        element: <SupplierOrders />,
+      },
+      {
+        path: "produtos",
+        element: <SupplierProducts />,
+      },
+      {
+        path: "estoque",
+        element: <SupplierInventory />,
+      },
+      {
+        path: "rotas",
         element: (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 text-center">
-            <h2 className="text-2xl font-semibold text-slate-800">Bem-vindo ao Portal RotaLog</h2>
-            <p className="text-slate-600 mt-2 text-sm">
-              Estrutura inicial de rotas, Tailwind e responsividade a partir de 360px configurada com sucesso.
-            </p>
-          </div>
+          <FeaturePlaceholder
+            title="Rotas"
+            description="Visualização das rotas e operações logísticas autorizadas."
+          />
         ),
+      },
+      {
+        path: "*",
+        element: null,
       },
     ],
   },
