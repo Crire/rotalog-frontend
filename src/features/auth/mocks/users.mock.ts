@@ -53,7 +53,7 @@ export const usersMock: MockUser[] = [
         role: "ROUTE_PLANNER",
         organizationIds: ["fornecedor-001"],
         permissions: [
-            "dashboard:view",
+
             "routes:view",
         ],
     },

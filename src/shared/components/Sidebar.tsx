@@ -1,45 +1,16 @@
-import type { Permission } from "../../features/auth/mocks/users.mock";
+
 import { NavLink } from "react-router-dom";
+
+import { appRoutes } from "../../app/routePermissions";
+import type { Permission } from "../../features/auth/mocks/users.mock";
 
 type SidebarProps = {
     permissions: Permission[];
 };
 
-const menuItems: {
-    label: string;
-    path: string;
-    permission: Permission;
-}[] = [
-        {
-            label: "Dashboard",
-            path: "/",
-            permission: "dashboard:view",
-        },
-        {
-            label: "Pedidos",
-            path: "/pedidos",
-            permission: "orders:view",
-        },
-        {
-            label: "Produtos",
-            path: "/produtos",
-            permission: "products:view",
-        },
-        {
-            label: "Estoque",
-            path: "/estoque",
-            permission: "inventory:view",
-        },
-        {
-            label: "Rotas",
-            path: "/rotas",
-            permission: "routes:view",
-        },
-    ];
-
 export function Sidebar({ permissions }: SidebarProps) {
-    const visibleItems = menuItems.filter((item) =>
-        permissions.includes(item.permission)
+    const visibleItems = appRoutes.filter((route) =>
+        permissions.includes(route.permission)
     );
 
     return (
@@ -48,17 +19,18 @@ export function Sidebar({ permissions }: SidebarProps) {
                 <h1 className="text-2xl font-bold text-white">
                     RotaLog
                 </h1>
+
                 <p className="text-sm text-slate-400">
                     Portal do Fornecedor
                 </p>
             </div>
 
             <nav aria-label="Menu principal" className="space-y-2">
-                {visibleItems.map((item) => (
+                {visibleItems.map((route) => (
                     <NavLink
-                        key={item.path}
-                        to={item.path}
-                        end={item.path === "/"}
+                        key={route.path}
+                        to={route.path}
+                        end={route.path === "/"}
                         className={({ isActive }) =>
                             `block rounded-lg px-4 py-3 text-sm transition-colors ${isActive
                                 ? "bg-blue-600 text-white"
@@ -66,7 +38,7 @@ export function Sidebar({ permissions }: SidebarProps) {
                             }`
                         }
                     >
-                        {item.label}
+                        {route.label}
                     </NavLink>
                 ))}
             </nav>
