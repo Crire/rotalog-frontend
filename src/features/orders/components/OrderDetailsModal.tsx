@@ -37,7 +37,10 @@ export function OrderDetailsModal({
     // Mantém a referência atualizada sem reinstalar
     // os eventos a cada renderização.
     const onCloseRef = useRef(onClose);
-    onCloseRef.current = onClose;
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     useEffect(() => {
         const previousFocusedElement = document.activeElement;
@@ -145,7 +148,7 @@ export function OrderDetailsModal({
                 aria-labelledby="order-details-title"
                 aria-describedby="order-details-description"
                 tabIndex={-1}
-                className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+                className="flex w-full max-w-xl max-h-[90dvh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
             >
                 {/* Cabeçalho */}
                 <div className="flex shrink-0 items-start justify-between border-b border-slate-200 p-6">
@@ -174,7 +177,7 @@ export function OrderDetailsModal({
                 </div>
 
                 {/* Conteúdo */}
-                <div className="space-y-6 overflow-y-auto p-6">
+                <div className="min-h-0 space-y-6 overflow-y-auto p-6">
                     <div>
                         <p className="mb-2 text-sm text-slate-500">
                             Status atual

@@ -4,6 +4,8 @@ import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { AppLayout } from "../shared/components/AppLayout";
 import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
 import { FeaturePlaceholder } from "../shared/pages/FeaturePlaceholder";
+import { SupplierProducts } from "../features/products/pages/SupplierProducts";
+import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
 
 export const router = createBrowserRouter([
   {
@@ -32,21 +34,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "produtos",
-        element: (
-          <FeaturePlaceholder
-            title="Produtos"
-            description="Consulta e gerenciamento dos produtos do fornecedor."
-          />
-        ),
+        element: <SupplierProducts />,
       },
       {
         path: "estoque",
-        element: (
-          <FeaturePlaceholder
-            title="Estoque"
-            description="Consulta e controle do estoque do fornecedor."
-          />
-        ),
+        element: <SupplierInventory />,
       },
       {
         path: "rotas",
