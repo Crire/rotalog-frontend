@@ -38,11 +38,14 @@ export function Sidebar({
     return (
         <aside className="h-full w-64 overflow-y-auto bg-slate-900 p-5 text-white">
             <div className="mb-10">
-                <h1 className="text-2xl font-bold text-white">
+                <NavLink
+                    to={portal === "buyer" ? "/" : "/fornecedor"}
+                    className="block text-2xl font-bold text-white"
+                >
                     RotaLog
-                </h1>
+                </NavLink>
 
-                <p className="text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-400">
                     {portal === "buyer"
                         ? "Portal do Comprador"
                         : "Portal do Fornecedor"}
@@ -55,7 +58,7 @@ export function Sidebar({
                         key={route.path}
                         to={route.path}
                         end={
-                            route.path === "/" ||
+                            route.path === "/fornecedor" ||
                             route.path === "/comprador/carrinho"
                         }
                         className={({ isActive }) =>
@@ -69,6 +72,17 @@ export function Sidebar({
                     </NavLink>
                 ))}
             </nav>
+
+            {portal === "buyer" && (
+                <div className="mt-8 border-t border-slate-700 pt-5">
+                    <NavLink
+                        to="/"
+                        className="block rounded-lg px-4 py-3 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                    >
+                        Voltar ao catálogo
+                    </NavLink>
+                </div>
+            )}
         </aside>
     );
 }

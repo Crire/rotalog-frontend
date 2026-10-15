@@ -16,27 +16,27 @@ export type AppRoute = {
 
 export const appRoutes: AppRoute[] = [
     {
-        path: "/",
+        path: "/fornecedor",
         label: "Dashboard",
         permission: "dashboard:view",
     },
     {
-        path: "/pedidos",
+        path: "/fornecedor/pedidos",
         label: "Pedidos",
         permission: "orders:view",
     },
     {
-        path: "/produtos",
+        path: "/fornecedor/produtos",
         label: "Produtos",
         permission: "products:view",
     },
     {
-        path: "/estoque",
+        path: "/fornecedor/estoque",
         label: "Estoque",
         permission: "inventory:view",
     },
     {
-        path: "/rotas",
+        path: "/fornecedor/rotas",
         label: "Rotas",
         permission: "routes:view",
     },
