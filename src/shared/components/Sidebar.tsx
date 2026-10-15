@@ -1,12 +1,5 @@
-
+import type { Permission } from "../../features/auth/mocks/users.mock";
 import { NavLink } from "react-router-dom";
-
-type Permission =
-    | "dashboard:view"
-    | "orders:view"
-    | "products:view"
-    | "inventory:view"
-    | "routes:view";
 
 type SidebarProps = {
     permissions: Permission[];
