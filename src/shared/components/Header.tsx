@@ -1,6 +1,7 @@
 
 import type { Organization } from "../../features/organizations/mocks/organizations.mock";
 import type { MockUser } from "../../features/auth/mocks/users.mock";
+import { useLogout } from "../../features/auth/hooks/useLogout";
 
 type HeaderProps = {
     userName: string;
@@ -25,6 +26,8 @@ export function Header({
     activeUserId,
     onUserChange,
 }: HeaderProps) {
+    const handleLogout = useLogout();
+
     const showOrganizationSelector =
         organizations.length > 0 &&
         activeOrganizationId !== undefined &&
@@ -121,6 +124,32 @@ export function Header({
                     >
                         {userName.trim().charAt(0).toUpperCase() || "U"}
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={() => void handleLogout()}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                        aria-label="Sair da conta"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <path d="m16 17 5-5-5-5" />
+                            <path d="M21 12H9" />
+                        </svg>
+
+                        <span>Sair</span>
+                    </button>
                 </div>
             </div>
         </header>

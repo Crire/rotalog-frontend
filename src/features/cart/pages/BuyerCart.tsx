@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { cartMock } from "../mocks/cart.mock";
+import { useCart } from "../hooks/useCart";
 import { Link } from "react-router-dom";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -9,6 +9,12 @@ const currency = new Intl.NumberFormat("pt-BR", {
 });
 
 export function BuyerCart() {
+    const {
+        suppliers,
+        updateQuantity,
+        removeFromCart,
+    } = useCart();
+
     const [acceptIndependentOrders, setAcceptIndependentOrders] =
         useState(false);
 
@@ -17,7 +23,7 @@ export function BuyerCart() {
 
     const [reviewConfirmed, setReviewConfirmed] = useState(false);
 
-    const productsTotal = cartMock.reduce(
+    const productsTotal = suppliers.reduce(
         (total, supplier) =>
             total +
             supplier.items.reduce(
@@ -28,13 +34,13 @@ export function BuyerCart() {
         0
     );
 
-    const deliveryTotal = cartMock.reduce(
+    const deliveryTotal = suppliers.reduce(
         (total, supplier) => total + supplier.deliveryFee,
         0
     );
 
     const canReviewPurchase =
-        acceptIndependentOrders && cartMock.length > 0;
+        acceptIndependentOrders && suppliers.length > 0;
 
     return (
         <div className="w-full">
@@ -63,7 +69,26 @@ export function BuyerCart() {
                         aria-label="Produtos agrupados por fornecedor"
                         className="space-y-5"
                     >
-                        {cartMock.map((supplier) => {
+                        {suppliers.length === 0 && (
+                            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                                <h2 className="text-xl font-bold text-slate-900">
+                                    Seu carrinho está vazio
+                                </h2>
+
+                                <p className="mt-2 text-sm text-slate-600">
+                                    Explore nosso catálogo e adicione produtos para começar sua compra.
+                                </p>
+
+                                <Link
+                                    to="/"
+                                    className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                                >
+                                    Explorar produtos
+                                </Link>
+                            </div>
+                        )}
+
+                        {suppliers.map((supplier) => {
                             const subtotal = supplier.items.reduce(
                                 (total, item) =>
                                     total + item.quantity * item.unitPrice,
@@ -96,10 +121,63 @@ export function BuyerCart() {
                                                         {item.productName}
                                                     </p>
 
-                                                    <p className="text-sm text-slate-500">
-                                                        {item.quantity} ×{" "}
-                                                        {currency.format(item.unitPrice)}
-                                                    </p>
+                                                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                                                        <div className="flex items-center overflow-hidden rounded-lg border border-slate-200">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (item.quantity > 1) {
+                                                                        updateQuantity(
+                                                                            supplier.supplierId,
+                                                                            item.id,
+                                                                            item.quantity - 1
+                                                                        );
+                                                                        setReviewConfirmed(false);
+                                                                    }
+                                                                }}
+                                                                disabled={item.quantity <= 1}
+                                                                aria-label={`Diminuir quantidade de ${item.productName}`}
+                                                                className="px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                                                            >
+                                                                −
+                                                            </button>
+
+                                                            <span className="min-w-8 text-center text-sm font-semibold">
+                                                                {item.quantity}
+                                                            </span>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    updateQuantity(
+                                                                        supplier.supplierId,
+                                                                        item.id,
+                                                                        item.quantity + 1
+                                                                    );
+                                                                    setReviewConfirmed(false);
+                                                                }}
+                                                                aria-label={`Aumentar quantidade de ${item.productName}`}
+                                                                className="px-3 py-1 text-slate-700 hover:bg-slate-100"
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
+
+                                                        <span className="text-sm text-slate-500">
+                                                            {currency.format(item.unitPrice)} por unidade
+                                                        </span>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                removeFromCart(supplier.supplierId, item.id);
+                                                                setReviewConfirmed(false);
+                                                            }}
+                                                            className="text-sm font-medium text-red-600 hover:underline"
+                                                        >
+                                                            Remover
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <p className="font-semibold">
@@ -157,7 +235,7 @@ export function BuyerCart() {
 
                         <p className="mt-2 text-sm text-slate-600">
                             Esta compra será dividida em{" "}
-                            <strong>{cartMock.length} pedidos</strong>,
+                            <strong>{suppliers.length} pedidos</strong>,
                             um para cada fornecedor.
                         </p>
 
@@ -273,7 +351,7 @@ export function BuyerCart() {
 
                                     <p className="mt-2 text-sm text-blue-800">
                                         Quantidade de pedidos:{" "}
-                                        {cartMock.length}
+                                        {suppliers.length}
                                     </p>
 
                                     <p className="mt-1 text-sm text-blue-800">

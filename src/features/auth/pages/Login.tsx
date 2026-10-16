@@ -1,32 +1,74 @@
 
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export function Login() {
+    const { login } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [message, setMessage] = useState("");
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        if (isSubmitting) return;
 
         if (!email.trim() || !password) {
             setMessage("Preencha seu e-mail e sua senha.");
             return;
         }
 
-        setMessage(
-            "Dados preenchidos. A autenticação será integrada à API do RotaLog."
-        );
+        setIsSubmitting(true);
+        setMessage("");
+
+        try {
+            const user = await login({ email, password });
+
+            const requestedPath = (
+                location.state as { from?: unknown } | null
+            )?.from;
+
+            const defaultPath =
+                user.role === "BUYER_ADMIN" ? "/" : "/fornecedor";
+
+            const destination =
+                typeof requestedPath === "string" &&
+                requestedPath.startsWith("/") &&
+                !requestedPath.startsWith("//") &&
+                !requestedPath.startsWith("/\\") &&
+                !requestedPath.includes("\\") &&
+                !requestedPath.includes("://") &&
+                !["/login", "/cadastro"].includes(requestedPath) &&
+                (user.role === "BUYER_ADMIN"
+                    ? requestedPath.startsWith("/produto/") ||
+                      requestedPath.startsWith("/comprador")
+                    : requestedPath.startsWith("/fornecedor"))
+                    ? requestedPath
+                    : defaultPath;
+
+            navigate(destination, { replace: true });
+        } catch (error) {
+            setMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Não foi possível realizar o login."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
-        <div className="h-dvh overflow-hidden bg-white text-slate-900">
-            <div className="grid h-full w-full overflow-hidden bg-white lg:grid-cols-2">
+        <div className="min-h-screen bg-white text-slate-900">
+            <div className="grid min-h-screen lg:grid-cols-2">
                 {/* Coluna esquerda */}
-                <section className="flex min-h-0 flex-col bg-white px-6 py-5 sm:px-10 lg:px-12">
+                <section className="flex flex-col bg-white px-6 py-8 sm:px-10 lg:px-12 lg:py-10">
                     {/* Logo */}
                     <Link to="/" className="flex w-fit items-center gap-3">
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md">
@@ -57,7 +99,7 @@ export function Login() {
                     </Link>
 
                     {/* Formulário */}
-                    <div className="mx-auto flex min-h-0 w-full max-w-[390px] flex-1 flex-col justify-center py-4">
+                    <div className="mx-auto flex w-full max-w-[390px] flex-1 flex-col justify-center py-10 lg:py-12">
                         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                             Bem-vindo de volta
                         </h1>
@@ -164,9 +206,10 @@ export function Login() {
 
                             <button
                                 type="submit"
-                                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                                disabled={isSubmitting}
+                                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Entrar
+                                {isSubmitting ? "Entrando..." : "Entrar"}
                             </button>
                         </form>
 
@@ -231,7 +274,7 @@ export function Login() {
                 </section>
 
                 {/* Coluna direita */}
-                <aside className="relative hidden h-full min-h-0 overflow-hidden bg-[#101b38] text-white lg:block">
+                <aside className="relative hidden min-h-full overflow-hidden bg-[#101b38] text-white lg:block">
                     <div
                         className="absolute inset-0 bg-cover bg-center"
                         style={{
