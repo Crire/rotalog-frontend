@@ -1,54 +1,96 @@
 
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Outlet } from "react-router-dom";
+
+import { Login } from "../features/auth/pages/Login";
+import { Register } from "../features/auth/pages/Register";
+import { ProtectedRoute } from "../features/auth/components/ProtectedRoute";
+
+import { NotFoundPage } from "../shared/pages/NotFoundPage";
+import { FeaturePlaceholder } from "../shared/pages/FeaturePlaceholder";
+
+import { ProductCatalog } from "../features/catalog/pages/ProductCatalog";
+import { ProductDetails } from "../features/catalog/pages/ProductDetails";
 
 import { AppLayout } from "../shared/components/AppLayout";
-import { BuyerLayout } from "../shared/components/BuyerLayout";
-import { FeaturePlaceholder } from "../shared/pages/FeaturePlaceholder";
+import { MarketplaceLayout } from "../shared/components/MarketplaceLayout";
 
 import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
 import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { SupplierProducts } from "../features/products/pages/SupplierProducts";
 import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
 
+import { BuyerAccount } from "../features/account/pages/BuyerAccount";
 import { BuyerCart } from "../features/cart/pages/BuyerCart";
 import { BuyerPurchases } from "../features/purchases/pages/BuyerPurchases";
 import { BuyerPurchaseDetails } from "../features/purchases/pages/BuyerPurchaseDetails";
 
 export const router = createBrowserRouter([
+  // Marketplace público e portal do comprador
   {
-    path: "/comprador",
-    element: <BuyerLayout />,
+    path: "/",
+    element: <MarketplaceLayout />,
+    errorElement: <NotFoundPage />,
     children: [
       {
-        path: "carrinho",
-        element: <BuyerCart />,
+        index: true,
+        element: <ProductCatalog />,
       },
       {
-        path: "compras",
-        element: <BuyerPurchases />,
+        path: "produto/:productId",
+        element: (
+          <ProtectedRoute allowedRoles={["BUYER_ADMIN"]}>
+            <ProductDetails />
+          </ProtectedRoute>
+        ),
       },
       {
-        path: "compras/:purchaseId",
-        element: <BuyerPurchaseDetails />,
+        path: "comprador",
+        element: (
+          <ProtectedRoute allowedRoles={["BUYER_ADMIN"]}>
+            <Outlet />
+          </ProtectedRoute>
+        ),
+        children: [
+          {
+            path: "carrinho",
+            element: <BuyerCart />,
+          },
+          {
+            path: "compras",
+            element: <BuyerPurchases />,
+          },
+          {
+            path: "compras/:purchaseId",
+            element: <BuyerPurchaseDetails />,
+          },
+          {
+            path: "conta",
+            element: <BuyerAccount />,
+          },
+        ],
       },
     ],
   },
-  {
-    path: "/",
-    element: <AppLayout />,
-    errorElement: (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-        <div className="rounded-xl bg-white p-6 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-slate-900">
-            Página não encontrada
-          </h1>
 
-          <p className="mt-2 text-sm text-slate-600">
-            Não foi possível acessar a página solicitada.
-          </p>
-        </div>
-      </div>
+  // Autenticação
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/cadastro",
+    element: <Register />,
+  },
+
+  // Portal do fornecedor
+  {
+    path: "/fornecedor",
+    element: (
+      <ProtectedRoute allowedRoles={["SUPPLIER_OPERATOR"]}>
+        <AppLayout />
+      </ProtectedRoute>
     ),
+    errorElement: <NotFoundPage />,
     children: [
       {
         index: true,
@@ -75,10 +117,12 @@ export const router = createBrowserRouter([
           />
         ),
       },
-      {
-        path: "*",
-        element: null,
-      },
     ],
+  },
+
+  // Rotas não encontradas
+  {
+    path: "*",
+    element: <NotFoundPage />,
   },
 ]);
