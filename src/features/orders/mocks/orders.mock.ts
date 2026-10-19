@@ -1,9 +1,49 @@
+import type { StockReservation } from "../../inventory/services/stockReservation";
 
 export type SupplierOrderStatus =
     | "Pendente"
     | "Em separação"
     | "Em transporte"
     | "Entregue";
+
+export type CommercialStatus =
+    | "Aguardando aceite"
+    | "Aceito"
+    | "Recusado";
+
+export type FinancialStatus =
+    | "Pendente"
+    | "Aprovado"
+    | "Reembolsado";
+
+export type CustodyStatus =
+    | "Aguardando separação"
+    | "Em separação"
+    | "Pronto para coleta"
+    | "Em transporte"
+    | "Entregue";
+
+export type SupplierOrderItem = {
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+};
+
+export const rejectionReasons = [
+    "Estoque indisponível",
+    "Impossibilidade de atendimento",
+    "Prazo inviável",
+    "Outro motivo",
+] as const;
+
+export type OrderRejectionReason = typeof rejectionReasons[number];
+
+export type OrderRejection = {
+    reason: OrderRejectionReason;
+    justification: string;
+    rejectedAt: string;
+};
 
 export type SupplierOrder = {
     id: string;
@@ -13,6 +53,14 @@ export type SupplierOrder = {
     total: number;
     status: SupplierOrderStatus;
     items: number;
+    commercialStatus?: CommercialStatus;
+    financialStatus?: FinancialStatus;
+    custodyStatus?: CustodyStatus;
+    orderItems?: SupplierOrderItem[];
+    acceptanceDeadline?: string;
+    timeZone?: string;
+    rejection?: OrderRejection;
+    stockReservation?: StockReservation;
 };
 
 export const ordersMock: SupplierOrder[] = [
@@ -24,6 +72,9 @@ export const ordersMock: SupplierOrder[] = [
         total: 1250,
         status: "Pendente",
         items: 5,
+        commercialStatus: "Aguardando aceite",
+        financialStatus: "Pendente",
+        custodyStatus: "Aguardando separação",
     },
     {
         id: "PED-002",
@@ -33,6 +84,9 @@ export const ordersMock: SupplierOrder[] = [
         total: 890,
         status: "Em separação",
         items: 3,
+        commercialStatus: "Aceito",
+        financialStatus: "Aprovado",
+        custodyStatus: "Em separação",
     },
     {
         id: "PED-003",
@@ -42,6 +96,9 @@ export const ordersMock: SupplierOrder[] = [
         total: 2340,
         status: "Em transporte",
         items: 8,
+        commercialStatus: "Aceito",
+        financialStatus: "Aprovado",
+        custodyStatus: "Em transporte",
     },
     {
         id: "PED-004",
@@ -51,6 +108,9 @@ export const ordersMock: SupplierOrder[] = [
         total: 560,
         status: "Entregue",
         items: 2,
+        commercialStatus: "Aceito",
+        financialStatus: "Aprovado",
+        custodyStatus: "Entregue",
     },
     {
         id: "PED-101",
@@ -60,6 +120,9 @@ export const ordersMock: SupplierOrder[] = [
         total: 740,
         status: "Pendente",
         items: 4,
+        commercialStatus: "Aguardando aceite",
+        financialStatus: "Pendente",
+        custodyStatus: "Aguardando separação",
     },
     {
         id: "PED-102",
@@ -69,6 +132,9 @@ export const ordersMock: SupplierOrder[] = [
         total: 1920,
         status: "Em separação",
         items: 6,
+        commercialStatus: "Aceito",
+        financialStatus: "Aprovado",
+        custodyStatus: "Em separação",
     },
     {
         id: "PED-103",
@@ -78,5 +144,8 @@ export const ordersMock: SupplierOrder[] = [
         total: 410,
         status: "Entregue",
         items: 2,
+        commercialStatus: "Aceito",
+        financialStatus: "Aprovado",
+        custodyStatus: "Entregue",
     },
 ];

@@ -1,3 +1,4 @@
+import { useSupplierInventory } from "../hooks/useSupplierInventory";
 
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
@@ -5,7 +6,6 @@ import { useOutletContext } from "react-router-dom";
 import type { Organization } from "../../organizations/mocks/organizations.mock";
 
 import {
-    productsMock,
     type ProductAvailability,
 } from "../../products/mocks/products.mock";
 
@@ -29,10 +29,7 @@ export function SupplierInventory() {
     const [stockFilter, setStockFilter] =
         useState<StockFilter>("Todos");
 
-    const organizationProducts = productsMock.filter(
-        (product) =>
-            product.organizationId === activeOrganization.id
-    );
+    const { products: organizationProducts, error: productsError } = useSupplierInventory(activeOrganization.id);
 
     const normalizedSearch = search
         .trim()
@@ -101,6 +98,7 @@ export function SupplierInventory() {
 
     return (
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+            {productsError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{productsError}</p>}
             {/* Cabeçalho */}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
@@ -222,7 +220,7 @@ export function SupplierInventory() {
 
                 {filteredProducts.length > 0 ? (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[750px] text-left text-sm">
+                        <table className="w-full min-w-[980px] text-left text-sm">
                             <thead className="bg-slate-50 text-slate-600">
                                 <tr>
                                     <th className="px-6 py-4 font-semibold">
@@ -235,8 +233,10 @@ export function SupplierInventory() {
                                         Categoria
                                     </th>
                                     <th className="px-6 py-4 font-semibold">
-                                        Quantidade
+                                        Estoque físico
                                     </th>
+                                    <th className="px-6 py-4 font-semibold">Reservado</th>
+                                    <th className="px-6 py-4 font-semibold">Disponível</th>
                                     <th className="px-6 py-4 font-semibold">
                                         Unidade
                                     </th>
@@ -265,9 +265,11 @@ export function SupplierInventory() {
                                         </td>
 
                                         <td className="px-6 py-4 font-semibold text-slate-900">
-                                            {product.stock}
+                                            {product.physical}
                                         </td>
 
+                                        <td className="px-6 py-4 text-amber-700">{product.reserved}</td>
+                                        <td className="px-6 py-4 font-semibold text-slate-900">{product.available}</td>
                                         <td className="px-6 py-4 text-slate-600">
                                             {product.unit}
                                         </td>

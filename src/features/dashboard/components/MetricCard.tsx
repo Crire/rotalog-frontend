@@ -2,17 +2,15 @@
 type MetricCardProps = {
     title: string;
     value: number;
-    description: string;
 };
 
 export function MetricCard({
     title,
     value,
-    description,
 }: MetricCardProps) {
     return (
-        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-sm font-medium text-slate-500">
+        <article className="flex h-full min-w-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="min-h-10 text-sm font-medium text-slate-500">
                 {title}
             </h3>
 
@@ -20,9 +18,6 @@ export function MetricCard({
                 {value.toLocaleString("pt-BR")}
             </p>
 
-            <p className="mt-2 text-xs text-slate-500">
-                {description}
-            </p>
         </article>
     );
 }

@@ -1,13 +1,16 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Outlet,
   useLocation,
   useNavigate,
 } from "react-router-dom";
 
+import { getSupplierOrders, subscribeSupplierOrders } from "../../features/orders/services/supplierOrders.service";
+
 import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
+import { SupplierDevControls } from "./SupplierDevControls";
+import { useLogout } from "../../features/auth/hooks/useLogout";
 
 import { usersMock } from "../../features/auth/mocks/users.mock";
 
@@ -21,6 +24,7 @@ import {
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const logout = useLogout();
   const location = useLocation();
 
   // Usuário ativo no ambiente de demonstração
@@ -31,6 +35,17 @@ export function AppLayout() {
   // Organização ativa
   const [activeOrganizationId, setActiveOrganizationId] =
     useState(organizationsMock[0]?.id ?? "");
+
+  const [supplierOrders, setSupplierOrders] = useState(getSupplierOrders);
+
+  useEffect(() => subscribeSupplierOrders(() => {
+    setSupplierOrders(getSupplierOrders());
+  }), []);
+
+  const pendingOrdersCount = supplierOrders.filter((order) =>
+    order.organizationId === activeOrganizationId &&
+    order.commercialStatus === "Aguardando aceite"
+  ).length;
 
   // Controle do menu mobile
   const [menuOpen, setMenuOpen] = useState(false);
@@ -116,8 +131,21 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
       {/* Sidebar desktop */}
-      <div className="sticky top-0 hidden h-screen shrink-0 self-start md:block">
-        <Sidebar permissions={activeUser.permissions} />
+      <div className="sticky top-0 hidden h-dvh shrink-0 self-start md:block">
+        <Sidebar
+          permissions={activeUser.permissions}
+          pendingOrdersCount={pendingOrdersCount}
+          organizationName={activeOrganization.name}
+          onLogout={() => void logout()}
+          developmentControls={import.meta.env.DEV ? <SupplierDevControls
+            organizations={allowedOrganizations}
+            users={usersMock}
+            organizationId={activeOrganization.id}
+            userId={activeUser.id}
+            onOrganizationChange={setActiveOrganizationId}
+            onUserChange={handleUserChange}
+          /> : undefined}
+        />
       </div>
 
       {/* Sidebar mobile */}
@@ -131,7 +159,20 @@ export function AppLayout() {
           />
 
           <div className="relative z-10 h-full w-64 overflow-y-auto">
-            <Sidebar permissions={activeUser.permissions} />
+            <Sidebar
+          permissions={activeUser.permissions}
+          pendingOrdersCount={pendingOrdersCount}
+          organizationName={activeOrganization.name}
+          onLogout={() => void logout()}
+          developmentControls={import.meta.env.DEV ? <SupplierDevControls
+            organizations={allowedOrganizations}
+            users={usersMock}
+            organizationId={activeOrganization.id}
+            userId={activeUser.id}
+            onOrganizationChange={setActiveOrganizationId}
+            onUserChange={handleUserChange}
+          /> : undefined}
+        />
           </div>
         </div>
       )}
@@ -149,20 +190,6 @@ export function AppLayout() {
             ☰ Menu
           </button>
         </div>
-
-        {/* Cabeçalho */}
-        <Header
-          userName={activeUser.name}
-          userRole={activeUser.role}
-          organizationName={activeOrganization.name}
-          organizations={allowedOrganizations}
-          activeOrganizationId={activeOrganization.id}
-          onOrganizationChange={setActiveOrganizationId}
-          users={usersMock}
-          activeUserId={activeUser.id}
-          onUserChange={handleUserChange}
-        />
-
 
         <main className="w-full min-w-0 flex-1 p-4 sm:p-6">
           {!routeExists ? (
