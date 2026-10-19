@@ -1,8 +1,11 @@
 
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
+import { catalogProducts, formatPrice } from "../mocks/products.mock";
 
-import { catalogProducts } from "../mocks/products.mock";
+type MarketplaceContext = {
+    search: string;
+};
 
 const categories = [
     "Todos",
@@ -11,276 +14,181 @@ const categories = [
     "Ferramentas",
 ];
 
-const currency = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-});
-
 export function ProductCatalog() {
-    const [search, setSearch] = useState("");
+    const { search } = useOutletContext<MarketplaceContext>();
     const [category, setCategory] = useState("Todos");
-    const [menuOpen, setMenuOpen] = useState(false);
 
     const filteredProducts = useMemo(() => {
+        const term = search.trim().toLocaleLowerCase("pt-BR");
+
         return catalogProducts.filter((product) => {
             const matchesCategory =
                 category === "Todos" || product.category === category;
 
-            const searchText = search.toLocaleLowerCase("pt-BR");
-
             const matchesSearch =
-                product.name.toLocaleLowerCase("pt-BR").includes(searchText) ||
-                product.supplier.toLocaleLowerCase("pt-BR").includes(searchText);
+                product.name.toLocaleLowerCase("pt-BR").includes(term) ||
+                product.supplier.toLocaleLowerCase("pt-BR").includes(term);
 
             return matchesCategory && matchesSearch;
         });
-    }, [search, category]);
+    }, [category, search]);
 
     return (
-        <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
-            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-                <div className="flex min-h-18 items-center gap-4 px-4 py-3 lg:px-8">
-                    <button
-                        type="button"
-                        onClick={() => setMenuOpen((current) => !current)}
-                        className="rounded-lg border border-slate-200 p-2 text-xl lg:hidden"
-                        aria-label="Abrir ou fechar menu"
-                        aria-expanded={menuOpen}
+        <div className="mx-auto w-full max-w-[1120px] text-slate-900">
+            <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#122a55] to-[#1d4d94] px-6 py-7 text-white sm:px-8 sm:py-8">
+                <div className="relative z-10 max-w-xl">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-200">
+                        Marketplace RotaLog
+                    </p>
+
+                    <h1 className="mt-2 text-[23px] font-bold leading-tight tracking-tight sm:text-[28px]">
+                        Tudo para o seu negócio em um só lugar
+                    </h1>
+
+                    <p className="mt-3 max-w-lg text-[13px] leading-5 text-blue-100">
+                        Encontre produtos, conheça fornecedores e organize
+                        suas compras de forma simples.
+                    </p>
+
+                    <a
+                        href="#produtos"
+                        className="mt-5 inline-flex h-9 items-center rounded-lg bg-white px-4 text-xs font-semibold text-blue-800 transition hover:bg-blue-50"
                     >
-                        ☰
-                    </button>
-
-                    <Link to="/" className="flex shrink-0 items-center gap-2">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-700 font-bold text-white">
-                            R
-                        </span>
-                        <span className="text-xl font-extrabold tracking-tight">
-                            RotaLog
-                        </span>
-                    </Link>
-
-                    <div className="mx-auto hidden w-full max-w-xl md:block">
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Buscar produtos ou fornecedores..."
-                            aria-label="Buscar produtos"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm outline-none focus:border-blue-500"
-                        />
-                    </div>
-
-                    <div className="ml-auto flex items-center gap-3">
-                        <Link
-                            to="/comprador/carrinho"
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50"
-                        >
-                            Carrinho
-                        </Link>
-
-                        <Link
-                            to="/login"
-                            className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-                        >
-                            Entrar
-                        </Link>
-                    </div>
+                        Explorar produtos
+                        <span className="ml-2" aria-hidden="true">→</span>
+                    </a>
                 </div>
 
-                <div className="px-4 pb-3 md:hidden">
-                    <input
-                        type="search"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Buscar produtos..."
-                        aria-label="Buscar produtos"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
-                    />
-                </div>
-            </header>
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-16 -top-20 h-60 w-60 rounded-full border-[35px] border-white/5"
+                />
+            </section>
 
-            <div className="mx-auto flex max-w-[1600px]">
-                <aside
-                    className={`w-60 shrink-0 border-r border-slate-200 bg-white p-5 ${menuOpen
-                            ? "fixed bottom-0 left-0 top-[116px] z-20 block overflow-y-auto shadow-xl"
-                            : "hidden"
-                        } lg:sticky lg:top-[73px] lg:block lg:h-[calc(100vh-73px)]`}
+            <section className="mt-7" aria-labelledby="categories-title">
+                <h2
+                    id="categories-title"
+                    className="text-base font-bold tracking-tight"
                 >
-                    <nav className="space-y-2 text-sm">
-                        <Link
-                            to="/"
-                            className="block rounded-lg bg-blue-50 px-4 py-3 font-semibold text-blue-700"
-                        >
-                            Catálogo de produtos
-                        </Link>
+                    Categorias
+                </h2>
 
-                        <Link
-                            to="/comprador/compras"
-                            className="block rounded-lg px-4 py-3 text-slate-600 hover:bg-slate-100"
-                        >
-                            Minhas compras
-                        </Link>
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {categories.map((item) => {
+                        const active = category === item;
 
-                        <Link
-                            to="/comprador/carrinho"
-                            className="block rounded-lg px-4 py-3 text-slate-600 hover:bg-slate-100"
-                        >
-                            Meu carrinho
-                        </Link>
-
-                        <Link
-                            to="/login"
-                            className="block rounded-lg px-4 py-3 text-slate-600 hover:bg-slate-100"
-                        >
-                            Minha conta
-                        </Link>
-                    </nav>
-
-                    <div className="mt-10 rounded-xl bg-slate-50 p-4">
-                        <p className="text-sm font-bold">Venda no RotaLog</p>
-                        <p className="mt-2 text-xs leading-5 text-slate-500">
-                            Cadastre sua empresa e alcance novos compradores.
-                        </p>
-
-                        <Link
-                            to="/cadastro"
-                            className="mt-4 inline-block text-sm font-semibold text-blue-700 hover:underline"
-                        >
-                            Começar agora →
-                        </Link>
-                    </div>
-                </aside>
-
-                <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
-                    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#102653] to-[#2457a7] p-6 text-white sm:p-10">
-                        <div className="relative z-10 max-w-xl">
-                            <span className="text-xs font-bold uppercase tracking-widest text-blue-200">
-                                Marketplace RotaLog
-                            </span>
-
-                            <h1 className="mt-3 text-2xl font-extrabold leading-tight sm:text-4xl">
-                                Tudo o que seu negócio precisa em um só lugar.
-                            </h1>
-
-                            <p className="mt-4 max-w-lg text-sm leading-6 text-blue-100">
-                                Encontre produtos, compare fornecedores e organize suas
-                                compras com mais praticidade.
-                            </p>
-
-                            <a
-                                href="#produtos"
-                                className="mt-6 inline-block rounded-lg bg-white px-5 py-3 text-sm font-bold text-blue-800 hover:bg-blue-50"
+                        return (
+                            <button
+                                key={item}
+                                type="button"
+                                onClick={() => setCategory(item)}
+                                aria-pressed={active}
+                                className={`rounded-lg border px-3.5 py-2 text-xs font-semibold transition ${active
+                                        ? "border-blue-700 bg-blue-700 text-white"
+                                        : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700"
+                                    }`}
                             >
-                                Explorar produtos
-                            </a>
-                        </div>
+                                {item}
+                            </button>
+                        );
+                    })}
+                </div>
+            </section>
 
-                        <div
-                            aria-hidden="true"
-                            className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/10 blur-2xl"
-                        />
-                    </section>
+            <section
+                id="produtos"
+                aria-labelledby="products-title"
+                className="mt-7 scroll-mt-24"
+            >
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h2
+                            id="products-title"
+                            className="text-lg font-bold tracking-tight"
+                        >
+                            Produtos disponíveis
+                        </h2>
 
-                    <section className="mt-8" aria-label="Categorias">
-                        <h2 className="text-xl font-bold">Categorias</h2>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Explore as opções dos fornecedores parceiros.
+                        </p>
+                    </div>
 
-                        <div className="mt-4 flex flex-wrap gap-2">
-                            {categories.map((item) => (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => setCategory(item)}
-                                    aria-pressed={category === item}
-                                    className={`rounded-full border px-5 py-2.5 text-sm font-medium transition ${category === item
-                                            ? "border-blue-700 bg-blue-700 text-white"
-                                            : "border-slate-200 bg-white text-slate-600 hover:border-blue-300"
-                                        }`}
+                    <span className="text-xs font-medium text-slate-500">
+                        {filteredProducts.length} produto(s)
+                    </span>
+                </div>
+
+                {filteredProducts.length === 0 ? (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
+                        <h3 className="text-base font-semibold">
+                            Nenhum produto encontrado
+                        </h3>
+
+                        <p className="mt-2 text-sm text-slate-500">
+                            Tente pesquisar outro termo ou selecionar outra categoria.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {filteredProducts.map((product) => (
+                            <article
+                                key={product.id}
+                                className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-blue-200 hover:shadow-sm"
+                            >
+                                <Link
+                                    to={`/produto/${product.id}`}
+                                    className="flex h-44 items-center justify-center overflow-hidden border-b border-slate-100 bg-white p-3 sm:h-48"
+                                    aria-label={`Ver detalhes de ${product.name}`}
                                 >
-                                    {item}
-                                </button>
-                            ))}
-                        </div>
-                    </section>
+                                    <img
+                                        src={product.image}
+                                        alt={product.name}
+                                        loading="lazy"
+                                        className="h-full w-full object-contain transition duration-200 group-hover:scale-[1.03]"
+                                    />
+                                </Link>
 
-                    <section id="produtos" className="mt-9 scroll-mt-28">
-                        <div className="flex flex-wrap items-end justify-between gap-3">
-                            <div>
-                                <h2 className="text-xl font-bold">Produtos disponíveis</h2>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Explore as opções dos fornecedores parceiros.
-                                </p>
-                            </div>
+                                <div className="flex flex-1 flex-col p-4">
+                                    <span className="w-fit rounded-md bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700">
+                                        {product.category}
+                                    </span>
 
-                            <span className="text-sm text-slate-500">
-                                {filteredProducts.length} produto(s)
-                            </span>
-                        </div>
+                                    <h3 className="mt-3 min-h-10 text-sm font-bold leading-5">
+                                        <Link
+                                            to={`/produto/${product.id}`}
+                                            className="transition hover:text-blue-700"
+                                        >
+                                            {product.name}
+                                        </Link>
+                                    </h3>
 
-                        {filteredProducts.length === 0 ? (
-                            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-10 text-center">
-                                <h3 className="font-semibold">
-                                    Nenhum produto encontrado
-                                </h3>
-                                <p className="mt-2 text-sm text-slate-500">
-                                    Tente pesquisar outro termo ou categoria.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                                {filteredProducts.map((product) => (
-                                    <article
-                                        key={product.id}
-                                        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                                    >
-                                        <div className="aspect-[4/3] overflow-hidden bg-slate-100">
-                                            <img
-                                                src={product.image}
-                                                alt={product.name}
-                                                loading="lazy"
-                                                className="h-full w-full object-cover"
-                                            />
-                                        </div>
+                                    <p className="mt-1 truncate text-xs text-slate-500">
+                                        Vendido por {product.supplier}
+                                    </p>
 
-                                        <div className="p-4">
-                                            <span className="text-xs font-semibold text-blue-700">
-                                                {product.category}
-                                            </span>
+                                    <div className="mt-auto pt-4">
+                                        <p className="text-xl font-bold tracking-tight text-slate-900">
+                                            {formatPrice(product.price)}
+                                        </p>
 
-                                            <h3 className="mt-2 min-h-12 text-base font-bold leading-6">
-                                                {product.name}
-                                            </h3>
+                                        <p className="mt-0.5 text-xs text-slate-500">
+                                            por {product.unit}
+                                        </p>
 
-                                            <p className="mt-1 text-xs text-slate-500">
-                                                Vendido por {product.supplier}
-                                            </p>
-
-                                            <div className="mt-4">
-                                                <p className="text-xl font-extrabold text-slate-900">
-                                                    {currency.format(product.price)}
-                                                </p>
-                                                <p className="text-xs text-slate-500">
-                                                    por {product.unit}
-                                                </p>
-                                            </div>
-
-                                            <Link
-                                                to={`/produto/${product.id}`}
-                                                className="mt-5 block rounded-lg bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-blue-800"
-                                            >
-                                                Ver detalhes
-                                            </Link>
-                                        </div>
-                                    </article>
-                                ))}
-                            </div>
-                        )}
-                    </section>
-
-                    <footer className="mt-12 border-t border-slate-200 py-6 text-center text-xs text-slate-400">
-                        © 2026 RotaLog. Todos os direitos reservados.
-                    </footer>
-                </main>
-            </div>
+                                        <Link
+                                            to={`/produto/${product.id}`}
+                                            className="mt-4 flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-xs font-semibold text-white transition hover:bg-blue-800"
+                                        >
+                                            Ver detalhes
+                                        </Link>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                )}
+            </section>
         </div>
     );
 }

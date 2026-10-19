@@ -80,7 +80,8 @@ function isSupplierCartArray(value: unknown): value is SupplierCart[] {
 
 function loadCart(userId: string): SupplierCart[] {
     try {
-        const storedCart = sessionStorage.getItem(getCartKey(userId));
+        const storedCart = localStorage.getItem(getCartKey(userId))
+            ?? sessionStorage.getItem(getCartKey(userId));
 
         if (!storedCart) {
             return [];
@@ -89,9 +90,12 @@ function loadCart(userId: string): SupplierCart[] {
         const parsedCart: unknown = JSON.parse(storedCart);
 
         if (!isSupplierCartArray(parsedCart)) {
-            sessionStorage.removeItem(getCartKey(userId));
+            localStorage.removeItem(getCartKey(userId));
             return [];
         }
+
+        localStorage.setItem(getCartKey(userId), JSON.stringify(parsedCart));
+        sessionStorage.removeItem(getCartKey(userId));
 
         return parsedCart;
     } catch {
@@ -112,6 +116,13 @@ export function CartProvider({ children }: CartProviderProps) {
         suppliers: userId ? loadCart(userId) : [],
     }));
 
+    if (cartState.userId !== userId) {
+        setCartState({
+            userId,
+            suppliers: userId ? loadCart(userId) : [],
+        });
+    }
+
     const suppliers =
         userId !== null && cartState.userId === userId
             ? cartState.suppliers
@@ -123,7 +134,7 @@ export function CartProvider({ children }: CartProviderProps) {
         }
 
         try {
-            sessionStorage.setItem(
+            localStorage.setItem(
                 getCartKey(userId),
                 JSON.stringify(cartState.suppliers)
             );
@@ -153,10 +164,11 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     function clearCart() {
-        const currentUserId = cartState.userId;
+        const currentUserId = userId;
 
         if (currentUserId) {
             try {
+                localStorage.removeItem(getCartKey(currentUserId));
                 sessionStorage.removeItem(getCartKey(currentUserId));
             } catch {
                 // A limpeza do estado em memória continua.
@@ -164,7 +176,7 @@ export function CartProvider({ children }: CartProviderProps) {
         }
 
         setCartState({
-            userId: null,
+            userId,
             suppliers: [],
         });
     }

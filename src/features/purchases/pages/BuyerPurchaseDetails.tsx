@@ -36,7 +36,7 @@ export function BuyerPurchaseDetails() {
 
     if (!purchase) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+            <div className="flex min-h-[60vh] items-center justify-center p-4">
                 <div className="rounded-xl bg-white p-8 text-center shadow-sm">
                     <h1 className="text-2xl font-bold text-slate-900">
                         Compra não encontrada
@@ -53,7 +53,7 @@ export function BuyerPurchaseDetails() {
                         Voltar ao carrinho
                     </Link>
                 </div>
-            </main>
+            </div>
         );
     }
 
@@ -69,8 +69,8 @@ export function BuyerPurchaseDetails() {
     }).format(new Date(purchase.createdAt));
 
     return (
-        <main className="w-full">
-            <div className="mx-auto max-w-6xl">
+        <div className="w-full">
+            <div className="w-full">
                 <Link
                     to="/comprador/carrinho"
                     className="text-sm font-medium text-blue-700 hover:underline"
@@ -245,6 +245,6 @@ export function BuyerPurchaseDetails() {
                     cobranças, pagamentos ou reembolsos efetivos.
                 </div>
             </div>
-        </main>
+        </div>
     );
 }
