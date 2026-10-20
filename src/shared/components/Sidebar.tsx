@@ -49,7 +49,7 @@ export function Sidebar({
             <div className="mb-10">
                 <NavLink
                     to={portal === "buyer" ? "/" : "/fornecedor"}
-                    className="block text-2xl font-bold text-white"
+                    className={`block text-2xl font-bold text-white ${portal === "supplier" ? "rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400" : ""}`}
                 >
                     RotaLog
                 </NavLink>
@@ -71,7 +71,7 @@ export function Sidebar({
                             route.path === "/comprador/carrinho"
                         }
                         className={({ isActive }) =>
-                            `flex items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm transition-colors ${isActive
+                            `flex items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm transition-colors ${portal === "supplier" ? "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400" : ""} ${isActive
                                 ? "bg-blue-600 text-white"
                                 : "text-slate-300 hover:bg-slate-800 hover:text-white"
                             }`
@@ -80,7 +80,7 @@ export function Sidebar({
                         {route.label}
                         {portal === "supplier" && route.path === "/fornecedor/pedidos" && pendingOrdersCount > 0 && (
                             <span
-                                className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-blue-500 px-1.5 text-xs font-bold text-white"
+                                className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-blue-700 px-1.5 text-xs font-bold text-white"
                                 aria-label={`${pendingOrdersCount} ${pendingOrdersCount === 1 ? "pedido aguardando aceite" : "pedidos aguardando aceite"}`}
                                 aria-live="polite"
                             >

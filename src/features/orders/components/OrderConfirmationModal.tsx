@@ -58,11 +58,11 @@ export function OrderConfirmationModal({ order, displayId, action, onClose, onCo
     }
 
     return createPortal(
-        <dialog ref={dialogRef} aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={(event) => { event.preventDefault(); if (!confirmingRef.current) onClose(); }} onClick={(event) => {
+        <dialog data-supplier-ui ref={dialogRef} aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={(event) => { event.preventDefault(); if (!confirmingRef.current) onClose(); }} onClick={(event) => {
             if (confirmingRef.current || event.target !== event.currentTarget) return;
             const bounds = event.currentTarget.getBoundingClientRect();
             if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
-        }} className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-24px)] max-w-lg overflow-y-auto rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60">
+        }} className="fixed inset-0 m-auto max-h-[calc(100dvh_-_1.5rem)] w-[calc(100%_-_1.5rem)] max-w-lg overflow-y-auto rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl [overflow-wrap:anywhere] backdrop:bg-slate-950/60">
             <div className="p-5 sm:p-6">
                 <h2 id={`${id}-title`} className="text-xl font-bold">{copy.title}</h2>
                 <p className="mt-3 break-words text-sm font-semibold">{displayId ?? order.id} · {order.customer}</p>
@@ -70,7 +70,7 @@ export function OrderConfirmationModal({ order, displayId, action, onClose, onCo
                 {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
                 <footer className="mt-6 flex flex-wrap justify-end gap-2">
                     <button ref={cancelRef} type="button" disabled={pending} onClick={onClose} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600">Cancelar</button>
-                    <button type="button" disabled={pending} aria-busy={pending} onClick={() => void confirm()} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">{pending ? "Processando…" : copy.button}</button>
+                    <button type="button" disabled={pending} aria-busy={pending} onClick={() => void confirm()} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{pending ? "Processando…" : copy.button}</button>
                 </footer>
             </div>
         </dialog>, document.body

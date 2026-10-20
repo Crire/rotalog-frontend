@@ -1,6 +1,8 @@
 
 import type { CommercialStatus, CustodyStatus, SupplierOrder, SupplierOrderStatus } from "../../orders/mocks/orders.mock";
 
+import { Link } from "react-router-dom";
+
 type RecentOrdersProps = {
     orders: SupplierOrder[];
     displayIds: Map<string, string>;
@@ -26,16 +28,17 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 export function RecentOrders({ orders, displayIds }: RecentOrdersProps) {
     return (
         <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-                <h2 className="text-lg font-semibold text-slate-900">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                <div><h2 className="text-base font-semibold text-slate-900">
                     Pedidos recentes
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                    Pedidos ordenados pela data mais recente
-                </p>
+                    Os cinco pedidos mais recentes
+                </p></div>
+                <Link to="/fornecedor/pedidos" className="rounded text-sm font-medium text-blue-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600">Ver todos os pedidos</Link>
             </div>
 
-            <div className="overflow-x-auto">
+            <div role="region" aria-label="Rolagem de pedidos recentes" tabIndex={0} className="overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600">
                 <table className="w-full min-w-[650px] text-left text-sm">
                     <thead className="bg-slate-50 text-slate-600">
                         <tr>
@@ -55,13 +58,13 @@ export function RecentOrders({ orders, displayIds }: RecentOrdersProps) {
                                 : order.commercialStatus ?? order.custodyStatus ?? order.status;
                             return (
                             <tr
-                                key={displayIds.get(order.id) ?? order.id}
+                                key={`${order.organizationId}:${order.id}`}
                                 className="border-t border-slate-100"
                             >
                                 <td className="px-5 py-4 font-medium text-slate-900">
-                                    {displayIds.get(order.id) ?? order.id}
+                                    <span title={displayIds.get(order.id) ?? order.id} className="block max-w-48 truncate">{displayIds.get(order.id) ?? order.id}</span>
                                 </td>
-                                <td className="px-5 py-4">{order.customer}</td>
+                                <td className="min-w-40 max-w-72 break-words px-5 py-4 [overflow-wrap:anywhere]">{order.customer}</td>
                                 <td className="px-5 py-4">
                                     {order.date.split("-").reverse().join("/")}
                                 </td>

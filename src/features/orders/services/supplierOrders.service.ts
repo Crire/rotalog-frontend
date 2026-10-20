@@ -1,4 +1,6 @@
 import { planStockReservation } from "../../inventory/services/stockReservation";
+import { withOrderWriteLock } from "./orderWriteLock";
+import { createReservationMovements } from "../../inventory/services/stockMovements";
 import { getSupplierProducts } from "../../products/services/supplierProducts.service";
 import type { SupplierProduct } from "../../products/mocks/products.mock";
 import {
@@ -28,6 +30,18 @@ function isSupplierOrder(value: unknown): value is SupplierOrder {
         typeof order.total === "number" &&
         typeof order.status === "string"
     );
+}
+
+export function readSupplierOrders(): SupplierOrder[] {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return ordersMock.map((order) => ({ ...order }));
+    let parsed: unknown;
+    try { parsed = JSON.parse(stored); }
+    catch { throw new Error("Pedidos salvos inválidos. Nenhum dado foi sobrescrito."); }
+    if (!Array.isArray(parsed) || !parsed.every(isSupplierOrder)) {
+        throw new Error("Pedidos salvos inválidos. Nenhum dado foi sobrescrito.");
+    }
+    return parsed;
 }
 
 export function getSupplierOrders(): SupplierOrder[] {
@@ -231,8 +245,7 @@ export interface SupplierOrderAcceptanceService {
 export const localSupplierOrderAcceptanceService: SupplierOrderAcceptanceService = {
     async accept(organizationId, orderId) {
         if (!organizationId) throw new Error("Organização ativa inválida.");
-        if (!navigator.locks) throw new Error("Este navegador não oferece suporte à reserva segura entre abas.");
-        return navigator.locks.request("rotalog:supplier-orders-write", () => {
+        return withOrderWriteLock(() => {
             // Diferentemente da leitura de apresentação, uma gravação nunca
             // substitui dados inválidos silenciosamente pelos mocks.
             const stored = localStorage.getItem(STORAGE_KEY);
@@ -241,9 +254,11 @@ export const localSupplierOrderAcceptanceService: SupplierOrderAcceptanceService
                 try { parsed = JSON.parse(stored); } catch { throw new Error("Pedidos salvos inválidos. Nenhuma reserva foi criada."); }
                 if (!Array.isArray(parsed) || !parsed.every(isSupplierOrder)) throw new Error("Pedidos salvos inválidos. Nenhuma reserva foi criada.");
             }
-            const orders = getSupplierOrders();
+            const orders = readSupplierOrders();
             const products = getSupplierProducts(organizationId);
             const updated = changeSupplierOrderStatus(orders, organizationId, orderId, "accept", undefined, products);
+            const accepted = updated.find(order => order.id === orderId && order.organizationId === organizationId)!;
+            accepted.stockReservation!.movements = createReservationMovements(accepted, products);
             saveSupplierOrders(updated);
             return updated;
         });

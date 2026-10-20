@@ -58,6 +58,8 @@ export type SupplierOrder = {
     custodyStatus?: CustodyStatus;
     orderItems?: SupplierOrderItem[];
     acceptanceDeadline?: string;
+    /** Data real de conclusão, quando fornecida pela origem do pedido. */
+    completedAt?: string;
     timeZone?: string;
     rejection?: OrderRejection;
     stockReservation?: StockReservation;

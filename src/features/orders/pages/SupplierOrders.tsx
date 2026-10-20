@@ -1,6 +1,8 @@
+import { getOrderStage as getStage, type OrderStage } from "../utils/orderStage";
 import { getTestOrderItems } from "../services/testOrderItems";
 import { getOrderDisplayIds } from "../utils/orderDisplayId";
 import { useState } from "react";
+import { useSupplierOrders } from "../hooks/useSupplierOrders";
 import { useOutletContext } from "react-router-dom";
 
 import type { Organization } from "../../organizations/mocks/organizations.mock";
@@ -8,19 +10,22 @@ import { OrderColumnFilter } from "../components/OrderColumnFilter";
 import { OrderConfirmationModal, type OrderConfirmationAction } from "../components/OrderConfirmationModal";
 import { OrderRejectionModal } from "../components/OrderRejectionModal";
 import { OrderDetailsModal } from "../components/OrderDetailsModal";
+import { OrderHistory } from "../components/OrderHistory";
+import { OrderDeadline } from "../components/OrderDeadline";
+import { ProductIcon } from "../../products/components/ProductIcon";
 import type { SupplierOrder } from "../mocks/orders.mock";
 import {
     localSupplierOrderAcceptanceService,
     changeSupplierOrderOperationalStatus,
     changeSupplierOrderStatus,
-    getSupplierOrders,
+    readSupplierOrders,
     saveSupplierOrders,
     type SupplierOperationalAction,
     type SupplierOrderAction,
 } from "../services/supplierOrders.service";
 
 type OrdersContext = { activeOrganization: Organization };
-type Stage = "new" | "accepted" | "separating" | "ready" | "transport" | "completed";
+type Stage = OrderStage;
 type FilterColumn = "customer" | "date" | "items" | "total";
 type Filters = Record<FilterColumn, string[]>;
 
@@ -30,7 +35,6 @@ const stages: { id: Stage; title: string; dot: string; background: string }[] = 
     { id: "separating", title: "Em separação", dot: "bg-amber-500", background: "bg-amber-50/70" },
     { id: "ready", title: "Prontos para coleta", dot: "bg-teal-500", background: "bg-teal-50/70" },
     { id: "transport", title: "Em transporte", dot: "bg-violet-500", background: "bg-violet-50/70" },
-    { id: "completed", title: "Finalizados", dot: "bg-slate-500", background: "bg-slate-100/80" },
 ];
 
 const filterColumns: { key: FilterColumn; title: string }[] = [
@@ -50,16 +54,7 @@ function formatDate(date: string): string {
     return new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR");
 }
 
-function getStage(order: SupplierOrder): Stage {
-    if (order.commercialStatus === "Recusado" || order.custodyStatus === "Entregue" || order.status === "Entregue") {
-        return "completed";
-    }
-    if (order.custodyStatus === "Em transporte" || order.status === "Em transporte") return "transport";
-    if (order.custodyStatus === "Pronto para coleta") return "ready";
-    if (order.custodyStatus === "Em separação" || order.status === "Em separação") return "separating";
-    if (order.commercialStatus === "Aceito") return "accepted";
-    return "new";
-}
+
 
 function getFilterValue(order: SupplierOrder, column: FilterColumn): string {
     switch (column) {
@@ -86,10 +81,11 @@ function XIcon() {
 
 export function SupplierOrders() {
     const { activeOrganization } = useOutletContext<OrdersContext>();
-    const [orders, setOrders] = useState<SupplierOrder[]>(getSupplierOrders);
+    const { orders, error: ordersError } = useSupplierOrders();
     const [rejectionTarget, setRejectionTarget] = useState<{ id: string; organizationId: string } | null>(null);
     const [confirmation, setConfirmation] = useState<{ id: string; organizationId: string; action: OrderConfirmationAction } | null>(null);
     const [search, setSearch] = useState("");
+    const [tab, setTab] = useState<"active" | "history">("active");
     const [filtersByColumn, setFiltersByColumn] = useState<Record<string, Filters>>({});
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -114,7 +110,9 @@ export function SupplierOrders() {
     const searchedOrders = organizationOrders.filter((order) =>
         !query || (displayIds.get(order.id) ?? order.id).toLocaleLowerCase("pt-BR").includes(query) || order.id.toLocaleLowerCase("pt-BR").includes(query) || order.customer.toLocaleLowerCase("pt-BR").includes(query)
     );
-    const visibleOrders = searchedOrders.filter(matchesColumnFilters);
+    const activeOrders = organizationOrders.filter(order => getStage(order) !== "completed");
+    const completedOrders = organizationOrders.filter(order => getStage(order) === "completed");
+    const visibleOrders = searchedOrders.filter(order => getStage(order) !== "completed").filter(matchesColumnFilters);
     const hasFilters = !!query || stages.some((stage) => filterColumns.some(({ key }) => columnFilters(stage.id)[key].length > 0));
     const selectedOrder = organizationOrders.find((order) => order.id === selectedOrderId) ?? null;
     const newCount = organizationOrders.filter((order) => getStage(order) === "new").length;
@@ -149,13 +147,13 @@ export function SupplierOrders() {
         if (!import.meta.env.DEV) return;
         setActionError(null);
         try {
-            const id = `TESTE-${crypto.randomUUID()}`;
+            const id = `TESTE-${Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
             const now = new Date();
             const date = new Intl.DateTimeFormat("sv-SE", {
                 timeZone: "America/Manaus",
                 year: "numeric", month: "2-digit", day: "2-digit",
             }).format(now);
-            const currentOrders = getSupplierOrders();
+            const currentOrders = readSupplierOrders();
             const orderItems = getTestOrderItems(activeOrganization.id, currentOrders);
             const testOrder: SupplierOrder = {
                 id,
@@ -174,7 +172,7 @@ export function SupplierOrders() {
             // Recarrega o armazenamento para preservar também pedidos salvos em outra aba.
             const updated = [...currentOrders, testOrder];
             saveSupplierOrders(updated);
-            setOrders(updated);
+            setTab("active");
             setSearch("");
             clearColumnFilters("new");
             document.getElementById("supplier-orders-new")?.scrollIntoView({ block: "nearest", inline: "start" });
@@ -198,13 +196,13 @@ export function SupplierOrders() {
 
     return (
         <div className="flex w-full min-w-0 flex-col gap-5">
-            {actionError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError}</div>}
+            {(actionError || ordersError) && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError || ordersError}</div>}
 
             <section aria-label="Pesquisa e filtros de pedidos" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h1 className="text-base font-semibold text-slate-900">Quadro de pedidos</h1>
-                        <p aria-live="polite" className="text-sm text-slate-500">{visibleOrders.length} de {organizationOrders.length} pedidos exibidos · {newCount} aguardando aceite</p>
+                        <p aria-live="polite" className="text-sm text-slate-500">{tab === "active" ? `${visibleOrders.length} de ${activeOrders.length} pedidos ativos exibidos · ${newCount} aguardando aceite` : `${completedOrders.length} pedidos no histórico`}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <label htmlFor="supplier-order-search" className="sr-only">Pesquisar pedido ou cliente</label>
@@ -217,15 +215,27 @@ export function SupplierOrders() {
                 </div>
             </section>
 
-            <section aria-label="Etapas dos pedidos" className="min-w-0">
-                <div className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto pb-4">
+            <div role="tablist" aria-label="Visualização dos pedidos" className="flex flex-wrap gap-2 border-b border-slate-200" onKeyDown={event => {
+                if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                event.preventDefault();
+                const next = event.key === "Home" ? "active" : event.key === "End" ? "history" : tab === "active" ? "history" : "active";
+                setTab(next);
+                document.getElementById(`orders-tab-${next}`)?.focus();
+            }}>
+                {(["active", "history"] as const).map(value => <button key={value} id={`orders-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls={`orders-panel-${value}`} tabIndex={tab === value ? 0 : -1} type="button" onClick={() => setTab(value)} className={`rounded-t-lg border-b-2 px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 ${tab === value ? "border-blue-600 bg-white text-blue-700" : "border-transparent text-slate-600 hover:bg-white"}`}>{value === "active" ? "Pedidos ativos" : "Histórico"} <span className="ml-1 text-xs">({value === "active" ? activeOrders.length : completedOrders.length})</span></button>)}
+            </div>
+            <div id="orders-panel-history" role="tabpanel" aria-labelledby="orders-tab-history" hidden={tab !== "history"} tabIndex={0} className="min-w-0 focus-visible:outline-2 focus-visible:outline-blue-600">
+                {tab === "history" && <OrderHistory key={activeOrganization.id} orders={orders} organizationId={activeOrganization.id} displayIds={displayIds} search={search} onDetails={setSelectedOrderId} />}
+            </div>
+            <section id="orders-panel-active" role="tabpanel" aria-labelledby="orders-tab-active" hidden={tab !== "active"} tabIndex={0} className="min-w-0 focus-visible:outline-2 focus-visible:outline-blue-600">
+                <div role="region" aria-label="Rolagem do quadro de pedidos" tabIndex={0} className="flex max-h-[max(18rem,calc(100dvh_-_12rem))] snap-x snap-mandatory items-start gap-3 overflow-auto overscroll-y-contain pb-4 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-blue-600">
                     {stages.map((stage) => {
                         const stageOrders = visibleOrders.filter((order) => getStage(order) === stage.id);
                         const allStageOrders = organizationOrders.filter((order) => getStage(order) === stage.id);
                         const totalStage = allStageOrders.length;
                         return (
-                            <div key={stage.id} id={`supplier-orders-${stage.id}`} className={`w-[275px] shrink-0 snap-start rounded-xl border border-slate-200 p-3 sm:w-[290px] ${stage.background}`}>
-                                <div className="mb-3 flex items-center justify-between gap-2 px-1">
+                            <div key={stage.id} id={`supplier-orders-${stage.id}`} className={`flex w-[275px] shrink-0 snap-start flex-col rounded-xl border border-slate-200 p-3 sm:w-[290px] ${stage.background}`}>
+                                <div className="mb-3 flex shrink-0 items-center justify-between gap-2 px-1">
                                     <div className="flex items-center gap-2">
                                         <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${stage.dot}`} />
                                         <h2 className="text-sm font-bold text-slate-800">{stage.title}</h2>
@@ -248,26 +258,27 @@ export function SupplierOrders() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-3 p-1">
                                     {stageOrders.map((order) => (
-                                        <article key={`${order.organizationId}-${order.id}`} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <h3 className="font-bold text-slate-900">{displayIds.get(order.id) ?? order.id}</h3>
-                                                <button type="button" onClick={() => setSelectedOrderId(order.id)} aria-label={`Ver detalhes do pedido ${displayIds.get(order.id) ?? order.id}`} className="rounded-md px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600">Detalhes</button>
-                                            </div>
+                                        <article key={`${order.organizationId}-${order.id}`} className="min-w-0 shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm [overflow-wrap:anywhere]">
+                                            <h3 title={displayIds.get(order.id) ?? order.id} className="truncate font-bold text-slate-900">{displayIds.get(order.id) ?? order.id}</h3>
                                             <p className="mt-1 text-sm text-slate-700">{order.customer}</p>
                                             <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
                                                 <span>{order.items} itens · {formatDate(order.date)}</span>
                                             </div>
-                                            <p className="mt-1 text-sm font-bold text-slate-900">{currencyFormatter.format(order.total)}</p>
+                                            <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                                                <p className="min-w-0 text-sm font-bold text-slate-900">{currencyFormatter.format(order.total)}</p>
+                                                <button type="button" onClick={() => setSelectedOrderId(order.id)} aria-label={`Ver detalhes do pedido ${displayIds.get(order.id) ?? order.id}`} className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600"><ProductIcon name="eye" /> Ver detalhes</button>
+                                            </div>
                                             {stage.id === "new" && (
                                                 <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
                                                     <button type="button" onClick={() => applyAction(order, "accept")} aria-label={`Aceitar pedido ${displayIds.get(order.id) ?? order.id}`} title="Aceitar pedido" className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-emerald-600"><CheckIcon /> Aceitar</button>
                                                     <button type="button" onClick={() => applyAction(order, "reject")} aria-label={`Recusar pedido ${displayIds.get(order.id) ?? order.id}`} title="Recusar pedido" className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-red-300 bg-red-50 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-red-600"><XIcon /> Recusar</button>
                                                 </div>
                                             )}
+                                            {stage.id === "new" && <div className="mt-2"><OrderDeadline order={order} /></div>}
                                             {stage.id === "accepted" && <button type="button" onClick={() => applyAction(order, "start-separation")} className="mt-3 w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Iniciar separação</button>}
-                                            {stage.id === "separating" && <button type="button" onClick={() => applyAction(order, "mark-ready")} className="mt-3 w-full rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700">Marcar como pronto</button>}
+                                            {stage.id === "separating" && <button type="button" onClick={() => applyAction(order, "mark-ready")} className="mt-3 w-full rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">Marcar como pronto</button>}
                                             {stage.id === "ready" && <p className="mt-3 rounded-lg bg-teal-50 px-2 py-2 text-center text-xs font-medium text-teal-800">Aguardando coleta</p>}
                                             {stage.id === "completed" && <p className="mt-3 text-xs font-semibold text-slate-600">{order.commercialStatus === "Recusado" ? "Recusado" : "Entregue"}</p>}
                                         </article>
@@ -278,7 +289,7 @@ export function SupplierOrders() {
                         );
                     })}
                 </div>
-                <p className="mt-1 text-xs text-slate-500">Deslize horizontalmente para visualizar todas as etapas. Os pedidos avançam pelas ações, não por arrastar cartões.</p>
+                <p className="mt-1 text-xs text-slate-600">Deslize horizontalmente para visualizar as etapas e verticalmente para ver mais pedidos em todas as colunas. Os pedidos avançam pelas ações, não por arrastar cartões.</p>
             </section>
 
             {confirmation?.organizationId === activeOrganization.id && organizationOrders.find((order) => order.id === confirmation.id) && (
@@ -294,10 +305,9 @@ export function SupplierOrders() {
                         if (confirmation.action === "accept") {
                             updated = await localSupplierOrderAcceptanceService.accept(activeOrganization.id, confirmation.id);
                         } else {
-                            updated = changeSupplierOrderOperationalStatus(getSupplierOrders(), activeOrganization.id, confirmation.id, confirmation.action);
+                            updated = changeSupplierOrderOperationalStatus(readSupplierOrders(), activeOrganization.id, confirmation.id, confirmation.action);
                             saveSupplierOrders(updated);
                         }
-                        setOrders(updated);
                         setConfirmation(null);
                     }}
                 />
@@ -309,9 +319,8 @@ export function SupplierOrders() {
                     displayId={displayIds.get(rejectionTarget.id)}
                     onClose={() => setRejectionTarget(null)}
                     onConfirm={(reason, justification) => {
-                        const updated = changeSupplierOrderStatus(orders, activeOrganization.id, rejectionTarget.id, "reject", { reason, justification });
+                        const updated = changeSupplierOrderStatus(readSupplierOrders(), activeOrganization.id, rejectionTarget.id, "reject", { reason, justification });
                         saveSupplierOrders(updated);
-                        setOrders(updated);
                         setRejectionTarget(null);
                         requestAnimationFrame(() => document.getElementById("supplier-order-search")?.focus());
                     }}

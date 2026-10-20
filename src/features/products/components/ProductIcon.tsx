@@ -1,6 +1,7 @@
-﻿type Props = { name: "search" | "filter" | "plus" | "upload" | "eye" | "pencil" };
+﻿type Props = { name: "search" | "filter" | "plus" | "upload" | "eye" | "pencil" | "image" };
 export function ProductIcon({ name }: Props) {
     const paths = {
+        image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m3 17 5-5 4 4 4-6 5 7" /></>,
         search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></>,
         filter: <path d="M4 4h16l-6 7v7l-4 2v-9L4 4Z" />,
         plus: <path d="M12 5v14M5 12h14" />,

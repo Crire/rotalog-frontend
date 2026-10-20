@@ -1,9 +1,11 @@
 ﻿import type { SupplierOrder } from "../../orders/mocks/orders.mock";
 import type { SupplierProduct } from "../../products/mocks/products.mock";
+import type { StockMovement } from "../models/stockMovement";
 
 export type StockReservation = {
     reservedAt: string;
     items: { productId: string; quantity: number }[];
+    movements?: StockMovement[];
 };
 export type StockBalance = { physical: number; reserved: number; available: number };
 

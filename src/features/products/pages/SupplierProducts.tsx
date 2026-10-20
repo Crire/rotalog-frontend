@@ -1,5 +1,7 @@
 import { ProductIcon } from "../components/ProductIcon";
+import { PageHeader } from "../../../shared/components/PageHeader";
 import { ProductAvailabilityFilter } from "../components/ProductAvailabilityFilter";
+import { ProductImage } from "../components/ProductImage";
 import { ProductFormModal } from "../components/ProductFormModal";
 import { ProductImportModal } from "../components/ProductImportModal";
 import { useSupplierProducts } from "../hooks/useSupplierProducts";
@@ -48,6 +50,7 @@ export function SupplierProducts() {
         useOutletContext<ProductsContext>();
 
     const [search, setSearch] = useState("");
+    const [imageWarning, setImageWarning] = useState<string | null>(null);
 
     const [availabilityFilter, setAvailabilityFilter] =
         useState<AvailabilityFilter>("Todos");
@@ -111,16 +114,17 @@ export function SupplierProducts() {
     }
 
     return (
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2">
-            <div className="flex items-center justify-end gap-2">
+        <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4">
+            <PageHeader title="Produtos" subtitle="Gerencie o catálogo de produtos do fornecedor." actions={<>
                 <button type="button" title="Importar XLSX" aria-label="Importar XLSX" onClick={() => setManagement({ organizationId: activeOrganization.id, mode: "import" })} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"><ProductIcon name="upload" /></button>
                 <button type="button" title="Novo produto" aria-label="Novo produto" onClick={() => setManagement({ organizationId: activeOrganization.id, mode: "new" })} className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-700 text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"><ProductIcon name="plus" /></button>
-            </div>
+            </>} />
             {productsError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{productsError}</p>}
+            {imageWarning && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{imageWarning}</p>}
             <section aria-labelledby="product-list-title" className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex flex-col justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center">
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-200 px-4 py-3 lg:flex-row lg:items-center">
                     <div>
-                        <h1 id="product-list-title" className="text-base font-semibold text-slate-900">Lista de produtos</h1>
+                        <h2 id="product-list-title" className="text-base font-semibold text-slate-900">Lista de produtos</h2>
                         <p aria-live="polite" className="mt-0.5 text-xs text-slate-500">{filteredProducts.length} de {organizationProducts.length} produto(s) encontrado(s)</p>
                     </div>
                     <div className="flex min-w-0 items-center gap-2">
@@ -134,9 +138,9 @@ export function SupplierProducts() {
                     </div>
                 </div>
                 {filteredProducts.length > 0 ? (
-                    <div className="overflow-x-auto">
+                    <div role="region" aria-label="Rolagem da tabela de produtos" tabIndex={0} className="max-h-[max(18rem,calc(100dvh_-_14rem))] overflow-auto overscroll-y-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600">
                         <table className="w-full min-w-[980px] text-left text-sm">
-                            <thead className="bg-slate-50 text-slate-600">
+                            <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600">
                                 <tr>
                                     <th scope="col" className="whitespace-nowrap px-4 py-2.5 align-middle font-semibold">
                                         Código
@@ -179,17 +183,20 @@ export function SupplierProducts() {
                                         className="hover:bg-slate-50"
                                     >
                                         {/* Código */}
-                                        <td className="whitespace-nowrap px-4 py-2.5 align-middle font-semibold text-slate-900">
-                                            {product.id}
+                                        <td className="min-w-24 max-w-40 px-4 py-2.5 align-middle font-semibold text-slate-900 [overflow-wrap:anywhere]">
+                                            <span className={product.id.length <= 24 ? "whitespace-nowrap" : "break-all"}>{product.id}</span>
                                         </td>
 
                                         {/* Nome */}
-                                        <td className="min-w-48 max-w-72 break-words px-4 py-2.5 align-middle text-slate-700">
-                                            {product.name}
+                                        <td className="min-w-48 max-w-72 [overflow-wrap:anywhere] px-4 py-2.5 align-middle text-slate-700">
+                                            <div className="flex items-center gap-3">
+                                                <ProductImage organizationId={activeOrganization.id} imageRef={product.imageRef} name={product.name} />
+                                                <span className="min-w-0">{product.name}</span>
+                                            </div>
                                         </td>
 
                                         {/* Categoria */}
-                                        <td className="min-w-40 max-w-56 break-words px-4 py-2.5 align-middle text-slate-600">
+                                        <td className="min-w-40 max-w-56 [overflow-wrap:anywhere] px-4 py-2.5 align-middle text-slate-600">
                                             {product.category}
                                         </td>
 
@@ -259,7 +266,7 @@ export function SupplierProducts() {
             {management?.organizationId === activeOrganization.id && (management.mode === "import" ? (
                 <ProductImportModal key={management.organizationId} organizationId={activeOrganization.id} onClose={() => setManagement(null)} onSaved={() => { setManagement(null); clearFilters(); }} />
             ) : (
-                <ProductFormModal key={`${management.organizationId}:${management.product?.id ?? "new"}`} organizationId={activeOrganization.id} product={management.product} onClose={() => setManagement(null)} onSaved={() => { setManagement(null); clearFilters(); }} />
+                <ProductFormModal key={`${management.organizationId}:${management.product?.id ?? "new"}`} organizationId={activeOrganization.id} product={management.product} onClose={() => setManagement(null)} onSaved={(warning) => { setImageWarning(warning ?? null); setManagement(null); clearFilters(); }} />
             ))}
             {/* Modal de detalhes do produto */}
             {visibleSelectedProduct && (

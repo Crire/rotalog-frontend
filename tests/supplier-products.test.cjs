@@ -13,7 +13,7 @@ function load(path, dependencies = {}) {
 }
 async function run() {
     const mocks = load('src/features/products/mocks/products.mock.ts');
-    const service = load('src/features/products/services/supplierProducts.service.ts', { '../mocks/products.mock': mocks });
+    const service = load('src/features/products/services/supplierProducts.service.ts', { '../mocks/products.mock': mocks, '../../inventory/services/stockMovements': load('src/features/inventory/services/stockMovements.ts') });
     const sheetService = load('src/features/products/services/productSpreadsheet.service.ts', { './supplierProducts.service': service });
     const org = 'fornecedor-001';
     const initial = JSON.stringify(service.getSupplierProducts(org));
@@ -24,6 +24,11 @@ async function run() {
     const created = service.createSupplierProducts(org, [input]);
     assert.equal(created.length, JSON.parse(initial).length + 1);
     assert.equal(service.getSupplierProducts(org).find(p => p.id === input.id).stock, 2.5);
+    const initialMovement = created.find(p => p.id === input.id).stockMovements;
+    assert.equal(initialMovement.length, 1);
+    assert.equal(initialMovement[0].type, 'initial-stock');
+    assert.equal(initialMovement[0].quantity, 2.5);
+    assert.equal(initialMovement[0].source, 'product-create');
     assert.throws(() => service.createSupplierProducts(org, [{ ...input, id: ' novo-001 ' }]));
     assert.throws(() => service.createSupplierProducts(org, [{ ...input, id: 'BATCH' }, input]));
     assert.ok(!service.getSupplierProducts(org).some(p => p.id === 'BATCH'));
@@ -34,6 +39,7 @@ async function run() {
     assert.equal(product.name, 'Editado');
     assert.equal(product.stock, 2.5);
     assert.equal(product.organizationId, org);
+    assert.equal(JSON.stringify(product.stockMovements), JSON.stringify(initialMovement), 'metadata editing preserves history without adding events');
     assert.throws(() => service.editSupplierProduct('other', input.id, input));
     const preview = sheetService.validateImportRows([
         { line: 2, values: ['X', 'Nome', 'Categoria', 'kg', '10,50', 0] },
@@ -53,6 +59,9 @@ async function run() {
     assert.equal(rows[0].errors.length, 0);
     assert.ok(rows[1].errors.length > 0);
     service.createSupplierProducts(org, rows.filter(row => !row.errors.length).map(row => row.product));
+    assert.equal(service.getSupplierProducts(org).find(p => p.id === 'IMPORT-001').stockMovements, undefined, 'zero initial stock does not create a movement');
+    const imported = service.createSupplierProducts(org, [{ ...input, id: 'XLSX-STOCK', stock: 3 }], 'xlsx-import').find(p => p.id === 'XLSX-STOCK');
+    assert.equal(imported.stockMovements[0].source, 'xlsx-import');
     assert.ok((await sheetService.readProductSpreadsheet(file, service.getSupplierProducts(org)))[0].errors.length > 0);
     await assert.rejects(() => sheetService.readProductSpreadsheet({ ...file, name: 'arquivo.csv' }, []));
     await assert.rejects(() => sheetService.readProductSpreadsheet({ ...file, size: 6 * 1024 * 1024 }, []));

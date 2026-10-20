@@ -1,6 +1,8 @@
 ﻿import { productsMock, type SupplierProduct } from "../mocks/products.mock";
 
-export type ProductInput = Pick<SupplierProduct, "id" | "name" | "category" | "unit" | "price" | "stock">;
+import { createInitialStockMovement } from "../../inventory/services/stockMovements";
+
+export type ProductInput = Pick<SupplierProduct, "id" | "name" | "category" | "unit" | "price" | "stock" | "imageRef">;
 const PREFIX = "rotalog:supplier-products:v1:";
 const EVENT = "rotalog:supplier-products-changed";
 export const normalizeCode = (code: string) => code.trim().toLocaleUpperCase("pt-BR");
@@ -10,6 +12,7 @@ export function validateProduct(input: ProductInput): string[] {
     if (![input.id, input.name, input.category, input.unit].every((value) => typeof value === "string" && value.trim())) errors.push("Código, nome, categoria e unidade são obrigatórios.");
     if (!Number.isFinite(input.price) || input.price <= 0) errors.push("Preço deve ser maior que zero.");
     if (!Number.isFinite(input.stock) || input.stock < 0) errors.push("Estoque deve ser não negativo.");
+    if (input.imageRef !== undefined && (typeof input.imageRef !== "string" || !/^product-image:[a-f0-9]{32}$/.test(input.imageRef))) errors.push("Referência de imagem inválida.");
     return errors;
 }
 
@@ -34,7 +37,7 @@ function save(organizationId: string, products: SupplierProduct[]) {
     window.dispatchEvent(new Event(EVENT));
 }
 
-export function createSupplierProducts(organizationId: string, inputs: ProductInput[]): SupplierProduct[] {
+export function createSupplierProducts(organizationId: string, inputs: ProductInput[], source: "product-create" | "xlsx-import" = "product-create"): SupplierProduct[] {
     if (!organizationId || inputs.length === 0) throw new Error("Organização e produtos são obrigatórios.");
     const current = getSupplierProducts(organizationId);
     const codes = new Set(current.map((product) => normalizeCode(product.id)));
@@ -44,18 +47,21 @@ export function createSupplierProducts(organizationId: string, inputs: ProductIn
         const code = normalizeCode(input.id);
         if (codes.has(code)) throw new Error(`Código já cadastrado ou duplicado: ${input.id}.`);
         codes.add(code);
-        return { ...input, id: input.id.trim(), name: input.name.trim(), category: input.category.trim(), unit: input.unit.trim(), organizationId, availability: input.stock === 0 ? "Indisponível" : input.stock <= 10 ? "Estoque baixo" : "Disponível" };
+        const product: SupplierProduct = { ...input, id: input.id.trim(), name: input.name.trim(), category: input.category.trim(), unit: input.unit.trim(), organizationId, availability: input.stock === 0 ? "Indisponível" : input.stock <= 10 ? "Estoque baixo" : "Disponível" };
+        // Saldo inicial e evento compartilham a mesma gravação do catálogo.
+        if (product.stock > 0) product.stockMovements = [createInitialStockMovement(product, source)];
+        return product;
     });
     const updated = [...current, ...additions];
     save(organizationId, updated);
     return updated;
 }
 
-export function editSupplierProduct(organizationId: string, id: string, changes: Pick<ProductInput, "name" | "category" | "unit" | "price">): SupplierProduct[] {
+export function editSupplierProduct(organizationId: string, id: string, changes: Pick<ProductInput, "name" | "category" | "unit" | "price" | "imageRef">): SupplierProduct[] {
     const current = getSupplierProducts(organizationId);
     const product = current.find((item) => item.id === id);
     if (!product) throw new Error("Produto não encontrado para esta organização.");
-    const updatedProduct = { ...product, name: changes.name, category: changes.category, unit: changes.unit, price: changes.price };
+    const updatedProduct = { ...product, name: changes.name, category: changes.category, unit: changes.unit, price: changes.price, ...("imageRef" in changes ? { imageRef: changes.imageRef } : {}) };
     const errors = validateProduct(updatedProduct);
     if (errors.length) throw new Error(errors.join(" "));
     updatedProduct.name = updatedProduct.name.trim();

@@ -1,4 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSupplierProducts } from "../../products/hooks/useSupplierProducts";
+import { ProductImage } from "../../products/components/ProductImage";
+import { OrderDeadline } from "./OrderDeadline";
+import { createPortal } from "react-dom";
+import { useModalBackground } from "../../../shared/hooks/useModalBackground";
 
 import type { Organization } from "../../organizations/mocks/organizations.mock";
 import type {
@@ -47,8 +52,30 @@ export function OrderDetailsModal({
     displayId,
 }: OrderDetailsModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    useModalBackground(overlayRef);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
     const onCloseRef = useRef(onClose);
+    const { products, error: catalogError } = useSupplierProducts(activeOrganization.id);
+    const [copyMessage, setCopyMessage] = useState<string | null>(null);
+
+    async function copyIdentifier() {
+        try {
+            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(order.id);
+            else {
+                const field = document.createElement("textarea");
+                field.value = order.id;
+                field.readOnly = true;
+                field.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+                modalRef.current?.appendChild(field);
+                try {
+                    field.select();
+                    if (!document.execCommand("copy")) throw new Error("Cópia indisponível");
+                } finally { field.remove(); }
+            }
+            setCopyMessage("Identificador copiado.");
+        } catch { setCopyMessage("Não foi possível copiar. Selecione o identificador e copie manualmente."); }
+    }
 
     useEffect(() => {
         onCloseRef.current = onClose;
@@ -138,9 +165,14 @@ export function OrderDetailsModal({
     const financial = order.financialStatus;
     const custody = order.custodyStatus;
     const orderItems = order.orderItems ?? [];
+    const productsTotal = orderItems.length ? orderItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) : null;
+    const quantityTotal = orderItems.length ? orderItems.reduce((sum, item) => sum + item.quantity, 0) : order.items;
+    const catalogById = new Map(products.filter(product => product.organizationId === order.organizationId).map(product => [product.id, product]));
 
-    return (
+    return createPortal(
         <div
+            ref={overlayRef}
+            data-supplier-ui
             className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 sm:p-6"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
@@ -153,16 +185,17 @@ export function OrderDetailsModal({
                 aria-labelledby="order-details-title"
                 aria-describedby="order-details-description"
                 tabIndex={-1}
-                className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+                className="flex max-h-[90dvh] w-full min-w-0 max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl [overflow-wrap:anywhere]"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-7 sm:py-5">
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-500">
                             Detalhes do pedido
                         </p>
                         <h2
                             id="order-details-title"
-                            className="mt-1 text-2xl font-bold tracking-tight text-slate-900"
+                            title={displayId ?? order.id}
+                            className="mt-1 truncate text-2xl font-bold tracking-tight text-slate-900"
                         >
                             {displayId ?? order.id}
                         </h2>
@@ -175,13 +208,19 @@ export function OrderDetailsModal({
                         type="button"
                         onClick={onClose}
                         aria-label="Fechar detalhes do pedido"
-                        className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                        className="shrink-0 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                     >
                         <span aria-hidden="true">✕</span>
                     </button>
                 </header>
 
                 <div className="min-h-0 space-y-6 overflow-y-auto px-5 py-5 sm:px-7">
+                    <div className="rounded-xl border border-slate-200 p-4">
+                        <p className="text-xs text-slate-500">Identificador completo</p>
+                        <code className="mt-1 block select-all break-all text-xs text-slate-700">{order.id}</code>
+                        <button type="button" onClick={() => void copyIdentifier()} className="mt-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600">Copiar identificador</button>
+                        {copyMessage && <p role="status" className="mt-2 text-xs text-slate-600">{copyMessage}</p>}
+                    </div>
                     <section aria-labelledby="order-status-heading">
                         <h3
                             id="order-status-heading"
@@ -212,21 +251,17 @@ export function OrderDetailsModal({
                             </div>
                             <div className="rounded-xl border border-slate-200 p-4">
                                 <p className="mb-2 text-xs font-medium text-slate-500">
-                                    Preparação / Logística
+                                    Custódia / Logística
                                 </p>
-                                {commercial === "Recusado" ? (
-                                    <span className="text-sm text-slate-500">
-                                        Não aplicável
-                                    </span>
-                                ) : (
                                     <span
                                         className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${custody ? custodyStyles[custody] : "bg-slate-100 text-slate-600"}`}
                                     >
                                         {custody ?? "Não informado"}
                                     </span>
-                                )}
+                                {commercial === "Recusado" && <p className="mt-2 text-xs text-slate-600">Pedido recusado; sem ações logísticas.</p>}
                             </div>
                         </div>
+                        {order.stockReservation?.reservedAt && <p className="mt-3 text-sm text-slate-600">Reserva registrada no aceite: {new Date(order.stockReservation.reservedAt).toLocaleString("pt-BR", { timeZone: order.timeZone ?? "America/Manaus", timeZoneName: "short" })}</p>}
                     </section>
 
                     {commercial === "Recusado" && (
@@ -279,6 +314,10 @@ export function OrderDetailsModal({
                                     {activeOrganization.name}
                                 </dd>
                             </div>
+                            <div className="sm:col-span-2">
+                                <dt className="text-xs text-slate-500">Prazo para aceite</dt>
+                                <dd className="mt-1"><OrderDeadline order={order} /></dd>
+                            </div>
                         </dl>
                     </section>
 
@@ -290,7 +329,7 @@ export function OrderDetailsModal({
                             Produtos do pedido
                         </h3>
                         {orderItems.length > 0 ? (
-                            <div className="overflow-x-auto rounded-xl border border-slate-200">
+                            <div role="region" aria-label="Rolagem dos produtos do pedido" tabIndex={0} className="overflow-x-auto rounded-xl border border-slate-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600">
                                 <table className="w-full min-w-[480px] text-left text-sm">
                                     <thead className="bg-slate-50 text-slate-600">
                                         <tr>
@@ -300,6 +339,7 @@ export function OrderDetailsModal({
                                             <th scope="col" className="px-4 py-3 text-right font-semibold">
                                                 Qtd.
                                             </th>
+                                            <th scope="col" className="px-4 py-3 font-semibold">Unidade</th>
                                             <th scope="col" className="px-4 py-3 text-right font-semibold">
                                                 Unitário
                                             </th>
@@ -309,14 +349,18 @@ export function OrderDetailsModal({
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {orderItems.map((item) => (
-                                            <tr key={item.productId}>
-                                                <td className="px-4 py-3 text-slate-900">
-                                                    {item.productName}
+                                        {orderItems.map((item, index) => (
+                                            <tr key={`${item.productId}:${index}`}>
+                                                <td className="max-w-64 px-4 py-3 text-slate-900">
+                                                    <div className="flex items-center gap-2">
+                                                        {catalogById.get(item.productId)?.imageRef && <ProductImage organizationId={order.organizationId} imageRef={catalogById.get(item.productId)?.imageRef} name={item.productName} />}
+                                                        <div className="min-w-0">{item.productName}<span className="mt-0.5 block text-xs text-slate-500">{item.productId}</span></div>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right text-slate-700">
                                                     {item.quantity}
                                                 </td>
+                                                <td className="px-4 py-3 text-slate-700">{catalogById.get(item.productId)?.unit ?? "Não informada"}</td>
                                                 <td className="px-4 py-3 text-right text-slate-700">
                                                     {currencyFormatter.format(item.unitPrice)}
                                                 </td>
@@ -333,9 +377,15 @@ export function OrderDetailsModal({
                                 A relação de produtos ainda não está disponível neste pedido demonstrativo.
                             </div>
                         )}
+                        {orderItems.length > 0 && <p className="mt-2 text-xs text-slate-500">{catalogError ? "Não foi possível consultar as unidades no catálogo." : "Unidades consultadas no catálogo atual do fornecedor. Quantidades e preços são os registrados no pedido."}</p>}
                     </section>
 
-                    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl bg-slate-50 p-5">
+                    <section aria-labelledby="order-summary-heading" className="rounded-xl bg-slate-50 p-5">
+                        <h3 id="order-summary-heading" className="mb-3 text-base font-semibold text-slate-900">Resumo financeiro</h3>
+                        <dl className="mb-4 space-y-2 text-sm">
+                            <div className="flex justify-between gap-3"><dt>Quantidade total de itens</dt><dd className="font-medium">{quantityTotal}</dd></div>
+                            <div className="flex justify-between gap-3"><dt>Valor total dos produtos</dt><dd className="font-medium">{productsTotal === null ? "Não informado" : currencyFormatter.format(productsTotal)}</dd></div>
+                        </dl>
                         <div>
                             <p className="text-sm text-slate-500">
                                 Valor total do pedido
@@ -344,10 +394,7 @@ export function OrderDetailsModal({
                                 {currencyFormatter.format(order.total)}
                             </p>
                         </div>
-                        <span className="text-xs text-slate-500">
-                            Dados demonstrativos
-                        </span>
-                    </div>
+                    </section>
 
                     <p
                         id="order-details-description"
@@ -368,6 +415,6 @@ export function OrderDetailsModal({
                     </button>
                 </footer>
             </div>
-        </div>
+        </div>, document.body
     );
 }

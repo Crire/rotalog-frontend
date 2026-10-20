@@ -88,7 +88,7 @@ export function OrderColumnFilter({ title, groups, onToggle, onClear }: Props) {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 4h16l-6 7v7l-4 2v-9L4 4Z" /></svg>
         </button>
         {open && createPortal(
-            <div ref={panelRef} id={id} role="dialog" aria-label={`Filtros de ${title}`} tabIndex={-1} style={{ ...position, width: "min(288px, calc(100vw - 16px))" }} className="fixed z-[80] flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+            <div data-supplier-ui ref={panelRef} id={id} role="dialog" aria-label={`Filtros de ${title}`} tabIndex={-1} style={{ ...position, width: "min(288px, calc(100vw - 16px))" }} className="fixed z-[80] flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
                     <h3 className="text-sm font-semibold">Filtrar {title}</h3>
                     <button type="button" onClick={close} aria-label="Fechar filtros" className="rounded p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600">✕</button>
@@ -96,11 +96,11 @@ export function OrderColumnFilter({ title, groups, onToggle, onClear }: Props) {
                 <div className="min-h-0 flex-1 overflow-y-auto p-3">
                     {groups.map((group) => <fieldset key={group.key} className="mb-3 last:mb-0">
                         <legend className="mb-1 text-xs font-semibold text-slate-600">{group.title}</legend>
-                        {group.values.length === 0 && <p className="text-xs text-slate-400">Sem valores nesta etapa</p>}
+                        {group.values.length === 0 && <p className="text-xs text-slate-600">Sem valores nesta etapa</p>}
                         <div className="max-h-32 overflow-y-auto">
                             {group.values.map(({ value, label }) => <label key={value} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-xs hover:bg-slate-50">
                                 <input type="checkbox" checked={group.selected.includes(value)} onChange={() => onToggle(group.key, value)} className="h-4 w-4 shrink-0 accent-blue-600 focus-visible:outline-2 focus-visible:outline-blue-600" />
-                                <span className="break-words">{label}</span>
+                                <span className="min-w-0 [overflow-wrap:anywhere]">{label}</span>
                             </label>)}
                         </div>
                     </fieldset>)}

@@ -46,12 +46,12 @@ export function OrderRejectionModal({ order, displayId, onClose, onConfirm }: Pr
 
     const fieldClass = "mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
     return createPortal(
-        <dialog ref={dialogRef} aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => {
+        <dialog data-supplier-ui ref={dialogRef} aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => {
             if (event.target === event.currentTarget) {
                 const bounds = event.currentTarget.getBoundingClientRect();
                 if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
             }
-        }} className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-24px)] max-w-lg overflow-y-auto rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60">
+        }} className="fixed inset-0 m-auto max-h-[calc(100dvh_-_1.5rem)] w-[calc(100%_-_1.5rem)] max-w-lg overflow-y-auto rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl [overflow-wrap:anywhere] backdrop:bg-slate-950/60">
             <form onSubmit={submit} className="p-5 sm:p-6">
                 <header className="flex items-start justify-between gap-3">
                     <h2 id={`${id}-title`} className="text-xl font-bold">Recusar pedido {displayId ?? order.id}</h2>
