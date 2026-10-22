@@ -1,147 +1,73 @@
-# ROT-027 — Dependências de Integração com o Backend
+# ROT-027 — Pendências para o Backend
 
 **Projeto:** RotaLog  
-**Módulo:** Jornada do Fornecedor — Frontend Web  
-**Situação:** Pendente de alinhamento com a equipe de Backend
+**Módulo:** Jornada do Fornecedor — Web
 
-## 1. Contexto
+## 1. Cadastro de produtos pelo fornecedor
 
-O Frontend da jornada do fornecedor já está integrado aos endpoints de pedidos até o estado `READY_TO_DISPATCH` (Pronto para coleta).
+O fornecedor deve conseguir cadastrar novos produtos diretamente no catálogo oficial do RotaLog, **sem aprovação administrativa**.
 
-Para concluir o acompanhamento dos pedidos, precisamos que o Backend disponibilize operações logísticas e a confirmação de recebimento pelo comprador.
+**Precisamos:**
+- Endpoint para cadastrar e publicar produtos pelo fornecedor autenticado.
+- Validação para evitar produtos duplicados.
+- Registro de quem cadastrou o produto.
+- Produto disponível no catálogo compartilhado para todos os fornecedores.
+- Regras para impedir alterações indevidas em produtos compartilhados.
 
-O fornecedor apenas acompanha a entrega. As confirmações serão realizadas pelo entregador, no aplicativo Mobile, e pelo comprador.
+Após cadastrar o produto, o fornecedor poderá criar sua oferta e configurar o estoque.
 
-## 2. Endpoints solicitados
+## 2. Gestão de ofertas
 
-Os caminhos abaixo são propostas e precisam ser confirmados pela equipe de Backend.
+Atualmente, conseguimos criar, editar preços e pausar ofertas.
 
-| Método | Endpoint | Finalidade |
-|---|---|---|
-| GET | `/api/v1/driver/fulfillments` | Listar atendimentos atribuídos ao entregador |
-| POST | `/api/v1/fulfillments/{id}/pickup` | Registrar coleta |
-| POST | `/api/v1/fulfillments/{id}/transport-events` | Registrar eventos do transporte |
-| POST | `/api/v1/fulfillments/{id}/delivery` | Registrar entrega pelo entregador |
-| POST | `/api/v1/supplier-orders/{id}/receipt-confirmation` | Confirmar recebimento pelo comprador |
+**Precisamos:**
+- Consultar ofertas ativas e pausadas.
+- Consultar detalhes de uma oferta pelo ID.
+- Reativar ofertas pausadas.
+- Evitar criação de ofertas duplicadas.
+- Garantir que tentativas repetidas de criação não gerem duplicatas.
 
-## 3. Endpoints existentes que precisam de atualização
+## 3. Estoque
 
-### GET `/api/v1/supplier-orders`
+A consulta e o ajuste de estoque já estão integrados.
 
-Precisamos que a listagem permita:
+**Precisamos:**
+- Endpoint para consultar o histórico real de ajustes, reservas e liberações de estoque.
+- Identificar corretamente o produto associado a uma oferta pausada.
 
-- Identificar pedidos em transporte.
-- Identificar pedidos aguardando confirmação do comprador.
-- Identificar pedidos entregues.
-- Consultar pedidos ativos e históricos.
-- Aplicar a regra de arquivamento após 7 dias.
+## 4. Capacidade operacional
 
-Filtros sugeridos:
+**Precisamos:**
+- Endpoint definitivo para cadastrar janelas de capacidade, sem utilizar rotas de demonstração.
+- Consultar as janelas de capacidade do próprio fornecedor.
+- Definir regras de alteração, cancelamento e sobreposição de horários.
 
-- `?view=active`
-- `?view=history`
+## 5. Pedidos e entregas
 
-### GET `/api/v1/supplier-orders/{id}`
+O fluxo do fornecedor já está integrado até o estado `READY_TO_DISPATCH` (Pronto para coleta).
 
-Campos adicionais sugeridos:
+**Precisamos:**
+- Registro de coleta pelo entregador.
+- Atualização do pedido para `IN_TRANSIT`.
+- Registro de entrega pelo entregador.
+- Confirmação de recebimento pelo comprador.
+- Atualização do pedido para `DELIVERED` após as confirmações necessárias.
+- Datas e histórico dos eventos de entrega.
+- Tratamento de entregas parciais.
+- Arquivamento automático dos pedidos entregues após 7 dias, mantendo-os disponíveis no histórico.
 
-- `picked_up_at`
-- `delivered_at`
-- `buyer_received_at`
-- `archive_at`
-- `delivery_events`
+O fornecedor apenas acompanha a entrega. As confirmações serão feitas pelo entregador e pelo comprador.
 
-Os nomes e formatos deverão ser definidos pela equipe de Backend.
+## 6. Identificação dos pedidos
 
-## 4. Estados logísticos propostos
-
-| Estado | Significado |
-|---|---|
-| `READY_TO_DISPATCH` | Pedido pronto para coleta |
-| `IN_TRANSIT` | Pedido coletado e em transporte |
-| `AWAITING_BUYER_RECEIPT` | Entregador registrou a entrega; aguardando comprador |
-| `DELIVERED` | Entrega e recebimento confirmados |
-
-Os novos estados ainda não estão implementados e precisam ser alinhados com o modelo existente.
-
-## 5. Regras de negócio
-
-1. O entregador registra a coleta e a entrega pelo Mobile.
-2. O comprador confirma o recebimento.
-3. O pedido somente é considerado entregue após ambas as confirmações.
-4. Pedidos entregues permanecem no Kanban por 7 dias (168 horas), contados da confirmação do comprador.
-5. Após esse período, passam a aparecer no Histórico, sem exclusão dos registros.
-6. Entregas parciais devem respeitar os lotes e as quantidades efetivamente recebidas.
-7. O fornecedor não poderá confirmar coleta, entrega ou recebimento.
-
-## 6. Dependências do Frontend ROT-027
-
-Após a disponibilização dos contratos, o Frontend deverá:
-
-- Integrar as colunas Em transporte e Entregues.
-- Exibir o estado intermediário de confirmação pendente.
-- Atualizar os detalhes dos pedidos.
-- Integrar o Histórico com a API.
-- Atualizar os indicadores do Dashboard.
-- Manter a compatibilidade com o fluxo existente.
-
-As melhorias visuais do Kanban, incluindo responsividade e redução da exibição de UUIDs, podem ser desenvolvidas independentemente dessas entregas.
-
-## 7. Pontos para alinhamento com o Backend
-
-- [ ] Confirmar os caminhos definitivos dos endpoints.
-- [ ] Definir os contratos de requisição e resposta.
-- [ ] Confirmar os estados logísticos.
-- [ ] Definir autenticação e permissões.
-- [ ] Definir vínculo entre entregador e atendimento.
-- [ ] Definir tratamento de entregas parciais.
-- [ ] Disponibilizar datas e eventos logísticos.
-- [ ] Implementar a regra de arquivamento após 7 dias.
-- [ ] Disponibilizar documentação OpenAPI/Swagger atualizada.
-
-## 8. Responsabilidades
-
-**Backend:** implementação dos endpoints, regras de negócio, persistência e permissões.
-
-**Frontend Web (ROT-027):** apresentação dos pedidos, Kanban, Dashboard, Histórico e consumo da API.
-
-**Mobile:** registro das operações do entregador.
-
-**Jornada do comprador:** confirmação do recebimento.
+**Precisamos:**
+- Campo `order_number` gerado pelo Backend, único e permanente, para identificar os pedidos sem depender do UUID.
 
 ---
 
-**Observação:** este documento registra dependências de integração. Não significa que os endpoints propostos já estejam disponíveis.
+## Observações
 
-## Preparação implementada no Web
-
-O modo API apresenta seis colunas e reconhece, apenas para exibição, os estados
-propostos `IN_TRANSIT`, `AWAITING_BUYER_RECEIPT` e `DELIVERED`. A confirmação do
-comprador pendente aparece em Em transporte. Estados desconhecidos continuam
-acessíveis em Outros estados. Nenhum comando logístico foi adicionado ao fornecedor.
-
-Enquanto o contrato não informar a classificação de arquivamento pelo servidor,
-`DELIVERED` permanece ativo. Recusados, cancelados e expirados continuam no Histórico.
-Não há cálculo local dos sete dias, datas presumidas ou mudança de pedidos persistidos.
-A futura integração deve adicionar campos confirmados pelo Backend e testes de contrato
-antes de consumir qualquer classificação de arquivamento.
-
-Cartões, Dashboard e detalhes utilizam a função `orderLabel`: na ausência de número
-comercial, exibem os primeiros oito caracteres do UUID, em maiúsculas, como
-`Pedido #F1E10A37`. Essa abreviação não garante unicidade, não substitui o UUID e não
-é usada nas requisições. Os detalhes permitem consultar e copiar os UUIDs completos.
-
-Quando dois pedidos carregados da organização compartilham o prefixo, a função
-expande o código em blocos de quatro caracteres até diferenciá-los. A comparação
-usa a lista completa carregada, antes dos filtros, ordenação ou limite do Dashboard.
-A chegada de outro pedido pode expandir o rótulo; colisões com pedidos não carregados
-não podem ser detectadas. Nenhuma associação ou autorização utiliza esse rótulo.
-
-Solicitação ao Backend: fornecer `order_number`, gerado pelo servidor, estável e
-garantido como único por restrição no banco, nas respostas de listagem e detalhes.
-O Web já aceita esse campo opcional e o prioriza quando não vazio, sem gerar números
-sequenciais locais. O campo continua proposto, sem confirmação no contrato atual.
-
-O Kanban mantém uma única área de rolagem vertical e horizontal, com colunas de
-largura legível e controles que se reorganizam em telas pequenas. O modo mock e
-seus serviços permanecem separados.
+- As funcionalidades listadas são pendências de integração, não endpoints já disponíveis.
+- A equipe de Backend deverá definir e informar os contratos das novas APIs.
+- Após a disponibilização dos endpoints, a equipe de Frontend realizará as integrações necessárias.
+- Não será necessário criar um painel administrativo para aprovação de produtos.

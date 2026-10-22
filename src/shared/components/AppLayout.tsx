@@ -271,7 +271,7 @@ export function AppLayout() {
             </div>
           ) : (
             <>
-              {apiMode && <p role="status" className="mb-4 text-sm text-slate-600">Sessão API: {sessionUser?.name}. Pedidos do Backend · produtos e estoque simulados.</p>}
+              {apiMode && <p role="status" className="mb-4 text-sm text-slate-600">Sessão API: {sessionUser?.name}. Pedidos, catálogo, ofertas e estoque do Backend.</p>}
               <Outlet context={{ activeOrganization }} />
             </>
           )}

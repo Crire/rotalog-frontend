@@ -17,7 +17,9 @@ import { MarketplaceLayout } from "../shared/components/MarketplaceLayout";
 import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
 import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { SupplierProducts } from "../features/products/pages/SupplierProducts";
+import { ApiSupplierProducts } from "../features/products/api/ApiSupplierProducts";
 import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
+import { ApiSupplierInventory } from "../features/inventory/api/ApiSupplierInventory";
 import { authMode } from "../shared/api/config";
 import { ApiOrdersProvider } from "../features/orders/api/OrdersProvider";
 import { ApiSupplierOrders } from "../features/orders/api/ApiSupplierOrders";
@@ -106,11 +108,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "produtos",
-        element: <SupplierProducts />,
+        element: authMode === "api" ? <ApiSupplierProducts /> : <SupplierProducts />,
       },
       {
         path: "estoque",
-        element: <SupplierInventory />,
+        element: authMode === "api" ? <ApiSupplierInventory /> : <SupplierInventory />,
       },
       {
         path: "rotas",
