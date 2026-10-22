@@ -17,7 +17,13 @@ import { MarketplaceLayout } from "../shared/components/MarketplaceLayout";
 import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard";
 import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { SupplierProducts } from "../features/products/pages/SupplierProducts";
+import { ApiSupplierProducts } from "../features/products/api/ApiSupplierProducts";
 import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
+import { ApiSupplierInventory } from "../features/inventory/api/ApiSupplierInventory";
+import { authMode } from "../shared/api/config";
+import { ApiOrdersProvider } from "../features/orders/api/OrdersProvider";
+import { ApiSupplierOrders } from "../features/orders/api/ApiSupplierOrders";
+import { ApiSupplierDashboard } from "../features/dashboard/pages/ApiSupplierDashboard";
 
 import { BuyerAccount } from "../features/account/pages/BuyerAccount";
 import { BuyerCart } from "../features/cart/pages/BuyerCart";
@@ -87,26 +93,26 @@ export const router = createBrowserRouter([
     path: "/fornecedor",
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER_OPERATOR"]}>
-        <AppLayout />
+        {authMode === "api" ? <ApiOrdersProvider><AppLayout /></ApiOrdersProvider> : <AppLayout />}
       </ProtectedRoute>
     ),
     errorElement: <NotFoundPage />,
     children: [
       {
         index: true,
-        element: <SupplierDashboard />,
+        element: authMode === "api" ? <ApiSupplierDashboard /> : <SupplierDashboard />,
       },
       {
         path: "pedidos",
-        element: <SupplierOrders />,
+        element: authMode === "api" ? <ApiSupplierOrders /> : <SupplierOrders />,
       },
       {
         path: "produtos",
-        element: <SupplierProducts />,
+        element: authMode === "api" ? <ApiSupplierProducts /> : <SupplierProducts />,
       },
       {
         path: "estoque",
-        element: <SupplierInventory />,
+        element: authMode === "api" ? <ApiSupplierInventory /> : <SupplierInventory />,
       },
       {
         path: "rotas",

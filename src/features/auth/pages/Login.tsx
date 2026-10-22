@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 export function Login() {
-    const { login } = useAuth();
+    const { login, sessionError, isLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -195,18 +195,18 @@ export function Login() {
                                 Lembrar de mim
                             </label>
 
-                            {message && (
+                            {(message || sessionError) && (
                                 <p
                                     role="status"
                                     className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700"
                                 >
-                                    {message}
+                                    {message || sessionError}
                                 </p>
                             )}
 
                             <button
                                 type="submit"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isLoading}
                                 className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {isSubmitting ? "Entrando..." : "Entrar"}
