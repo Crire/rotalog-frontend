@@ -1,3 +1,7 @@
+import { authMode } from "../api/config";
+import { useAuth } from "../../features/auth/hooks/useAuth";
+import { supplierPermissions } from "../../features/services/apiAuth.service";
+import { useApiPendingOrders } from "../../features/orders/api/ordersContext";
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -24,6 +28,8 @@ import {
 } from "../../app/routePermissions";
 
 export function AppLayout() {
+  const { user: sessionUser } = useAuth();
+  const apiMode = authMode === "api";
   const navigate = useNavigate();
   const logout = useLogout();
   const location = useLocation();
@@ -37,13 +43,15 @@ export function AppLayout() {
   const [activeOrganizationId, setActiveOrganizationId] =
     useState(organizationsMock[0]?.id ?? "");
 
-  const [supplierOrders, setSupplierOrders] = useState(getSupplierOrders);
+  const [supplierOrders, setSupplierOrders] = useState(() => apiMode ? [] : getSupplierOrders());
+  const apiPendingOrders = useApiPendingOrders();
 
-  useEffect(() => subscribeSupplierOrders(() => {
-    setSupplierOrders(getSupplierOrders());
-  }), []);
+  useEffect(() => {
+    if (apiMode) return;
+    return subscribeSupplierOrders(() => { setSupplierOrders(getSupplierOrders()); });
+  }, [apiMode]);
 
-  const pendingOrdersCount = supplierOrders.filter((order) =>
+  const pendingOrdersCount = apiMode ? apiPendingOrders : supplierOrders.filter((order) =>
     order.organizationId === activeOrganizationId &&
     order.commercialStatus === "Aguardando aceite"
   ).length;
@@ -78,12 +86,16 @@ export function AppLayout() {
   }, [menuOpen]);
 
   // Identifica o usuário selecionado
-  const activeUser = usersMock.find(
+  const activeUser = apiMode && sessionUser ? {
+    ...sessionUser,
+    organizationIds: sessionUser.organizations?.map(org => org.id) ?? [],
+    permissions: supplierPermissions(sessionUser),
+  } : usersMock.find(
     (user) => user.id === activeUserId
   );
 
   // Exibe somente organizações vinculadas ao usuário
-  const allowedOrganizations = organizationsMock.filter(
+  const allowedOrganizations = (apiMode ? sessionUser?.organizations ?? [] : organizationsMock).filter(
     (organization) =>
       activeUser?.organizationIds.includes(organization.id)
   );
@@ -91,7 +103,7 @@ export function AppLayout() {
   // Identifica a organização ativa e autorizada
   const activeOrganization = allowedOrganizations.find(
     (organization) =>
-      organization.id === activeOrganizationId
+      organization.id === (apiMode ? sessionUser?.organization_id : activeOrganizationId)
   );
 
   // Troca o usuário simulado
@@ -165,7 +177,7 @@ export function AppLayout() {
           pendingOrdersCount={pendingOrdersCount}
           organizationName={activeOrganization.name}
           onLogout={() => void logout()}
-          developmentControls={import.meta.env.DEV ? <SupplierDevControls
+          developmentControls={!apiMode && import.meta.env.DEV ? <SupplierDevControls
             organizations={allowedOrganizations}
             users={usersMock}
             organizationId={activeOrganization.id}
@@ -190,7 +202,7 @@ export function AppLayout() {
           pendingOrdersCount={pendingOrdersCount}
           organizationName={activeOrganization.name}
           onLogout={() => void logout()}
-          developmentControls={import.meta.env.DEV ? <SupplierDevControls
+          developmentControls={!apiMode && import.meta.env.DEV ? <SupplierDevControls
             organizations={allowedOrganizations}
             users={usersMock}
             organizationId={activeOrganization.id}
@@ -258,7 +270,10 @@ export function AppLayout() {
               </p>
             </div>
           ) : (
-            <Outlet context={{ activeOrganization }} />
+            <>
+              {apiMode && <p role="status" className="mb-4 text-sm text-slate-600">Sessão API: {sessionUser?.name}. Pedidos do Backend · produtos e estoque simulados.</p>}
+              <Outlet context={{ activeOrganization }} />
+            </>
           )}
         </main>
 

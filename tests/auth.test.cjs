@@ -1,0 +1,48 @@
+﻿const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ts = require('typescript');
+const storage = new Map();
+const calls = [];
+let handler;
+function load(path, dependencies, extras = {}) {
+ const module = {exports:{}};
+ const code = ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ vm.runInNewContext(code,{module,exports:module.exports,require:id=>dependencies[id],Headers,URLSearchParams,Date,navigator:{},sessionStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},...extras});
+ return module.exports;
+}
+const http = load('src/shared/api/http.ts',{'./config':{apiUrl:'http://localhost:8000'}},{fetch:async(url,options)=>{calls.push({url,options});return handler(url,options);}});
+const auth = load('src/features/services/apiAuth.service.ts',{'../../shared/api/http':http});
+const user = {id:'user',name:'Supplier',email:'supplier@example.invalid',role:'SUPPLIER_OPERATOR',organization_id:'org',organizations:[{id:'org',name:'Org',role:'SUPPLIER_OPERATOR'}],capabilities:['supplier_order:manage','offer:write','inventory:write']};
+const tokens = {access_token:'memory-only',expires_in:600,csrf_token:'csrf-only',user};
+const ok = data=>({ok:true,status:200,json:async()=>data});
+(async()=>{
+ handler=url=>ok(url.endsWith('/me')?user:tokens);
+ assert.equal((await auth.apiAuthService.login({email:user.email,password:'input-only'})).organization_id,'org');
+ assert.equal(calls[0].options.body.get('username'),user.email);
+ assert.equal(calls[0].options.credentials,'include');
+ assert.equal(calls[1].options.headers.get('Authorization'),'Bearer memory-only');
+ assert.deepEqual([...storage.values()],['csrf-only']);
+ assert.equal(auth.supplierPermissions(user).length,4);
+ assert.equal(auth.supplierPermissions({...user,role:'DRIVER'}).length,0);
+ assert.equal(auth.supplierPermissions({...user,organizations:[]}).length,0);
+ const before=calls.length;
+ await Promise.all([auth.refreshSession(),auth.refreshSession(),auth.refreshSession()]);
+ assert.equal(calls.length,before+1);
+ assert.equal(calls.at(-1).options.headers['X-CSRF-Token'],'csrf-only');
+ let failures=0;
+ handler=url=>url.endsWith('/me')&&failures++===0?{ok:false,status:401}:ok(url.endsWith('/me')?user:tokens);
+ assert.equal((await auth.authenticatedRequest('/api/v1/me')).id,user.id);
+ handler=()=>({ok:true,status:204});
+ await auth.apiAuthService.logout();
+ assert.equal(storage.size,0);
+ handler=()=>({ok:false,status:401});
+ await assert.rejects(auth.apiAuthService.login({email:user.email,password:'wrong'}));
+ storage.set('rotalog:api-csrf','expired');
+ assert.equal(await auth.apiAuthService.restore(),null);
+ assert.equal(storage.size,0);
+ handler=url=>ok(url.endsWith('/me')?{...user,capabilities:[]}:tokens);
+ await assert.rejects(auth.apiAuthService.login({email:user.email,password:'input-only'}));
+ assert.equal(storage.size,0);
+ console.log('Auth: OAuth2, /me, permissions, memory-only access, CSRF, single refresh, 401 retry, logout, invalid and expired sessions passed.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

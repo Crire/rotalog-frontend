@@ -18,6 +18,10 @@ import { SupplierDashboard } from "../features/dashboard/pages/SupplierDashboard
 import { SupplierOrders } from "../features/orders/pages/SupplierOrders";
 import { SupplierProducts } from "../features/products/pages/SupplierProducts";
 import { SupplierInventory } from "../features/inventory/pages/SupplierInventory";
+import { authMode } from "../shared/api/config";
+import { ApiOrdersProvider } from "../features/orders/api/OrdersProvider";
+import { ApiSupplierOrders } from "../features/orders/api/ApiSupplierOrders";
+import { ApiSupplierDashboard } from "../features/dashboard/pages/ApiSupplierDashboard";
 
 import { BuyerAccount } from "../features/account/pages/BuyerAccount";
 import { BuyerCart } from "../features/cart/pages/BuyerCart";
@@ -87,18 +91,18 @@ export const router = createBrowserRouter([
     path: "/fornecedor",
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER_OPERATOR"]}>
-        <AppLayout />
+        {authMode === "api" ? <ApiOrdersProvider><AppLayout /></ApiOrdersProvider> : <AppLayout />}
       </ProtectedRoute>
     ),
     errorElement: <NotFoundPage />,
     children: [
       {
         index: true,
-        element: <SupplierDashboard />,
+        element: authMode === "api" ? <ApiSupplierDashboard /> : <SupplierDashboard />,
       },
       {
         path: "pedidos",
-        element: <SupplierOrders />,
+        element: authMode === "api" ? <ApiSupplierOrders /> : <SupplierOrders />,
       },
       {
         path: "produtos",
