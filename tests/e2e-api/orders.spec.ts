@@ -61,6 +61,39 @@ async function openDetails(page: Page) {
     await page.getByRole("button",{name:`Ver detalhes do pedido ${id}`}).click();
     return page.getByRole("dialog");
 }
+
+test('filtro traduz rótulos sem alterar valores e preserva estados desconhecidos', async ({page}) => {
+    await setup(page, [makeOrder(id, 'READY_TO_DISPATCH'), makeOrder('unknown', 'FUTURE_STATE')]);
+    await page.goto('/fornecedor/pedidos');
+    const filter = page.getByLabel('Filtrar estado', {exact:true});
+    await expect(filter.locator('option[value="READY_TO_DISPATCH"]')).toHaveText('Pronto para coleta');
+    await filter.selectOption({label:'Pronto para coleta'});
+    await expect(filter).toHaveValue('READY_TO_DISPATCH');
+    await expect(page.getByRole('button', {name:`Ver detalhes do pedido ${id}`})).toBeAttached();
+    await expect(page.getByRole('button', {name:'Ver detalhes do pedido unknown'})).toHaveCount(0);
+    await filter.selectOption('FUTURE_STATE');
+    await expect(page.getByRole('region', {name:'Outros estados', exact:true}).getByText('FUTURE_STATE')).toBeAttached();
+});
+
+test('identificação curta consistente e colisões antes dos filtros', async ({page}) => {
+    const first = makeOrder('f1e10a37-78d7-4d53-828d-5122922dff46');
+    const second = makeOrder('f1e10a37-1234-4d53-828d-5122922dff46');
+    const numbered = Object.assign(makeOrder('commercial-order'), {order_number:'RL-2026-001'});
+    const state = await setup(page, [first, second, numbered]);
+    await page.goto('/fornecedor/pedidos');
+    await expect(page.getByRole('heading', {name:'Pedido #F1E10A3778D7', exact:true})).toBeVisible();
+    await expect(page.getByRole('heading', {name:'Pedido #F1E10A371234', exact:true})).toBeVisible();
+    await expect(page.getByRole('heading', {name:'Pedido RL-2026-001', exact:true})).toBeVisible();
+    await page.getByRole('searchbox').fill(first.id);
+    await expect(page.getByRole('heading', {name:'Pedido #F1E10A3778D7', exact:true})).toBeVisible();
+    await page.getByRole('button', {name:`Ver detalhes do pedido ${first.id}`}).click();
+    await expect(page.getByRole('region', {name:'Resumo do pedido'}).getByText('Pedido #F1E10A3778D7', {exact:true})).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByRole('navigation').getByRole('link', {name:'Dashboard', exact:true}).click();
+    await expect(page.getByText('Pedido #F1E10A3778D7', {exact:true})).toBeVisible();
+    await expect(page.getByText('Pedido RL-2026-001', {exact:true})).toBeVisible();
+    expect(state.posts).toHaveLength(0);
+});
 test("vazio sem mocks ou datas fictícias; navegação somente consulta", async ({page}) => {
     const state=await setup(page,[]); await page.goto("/fornecedor");
     await expect(page.getByRole("link",{name:"Pedidos recebidos: 0. Ver pedidos"})).toBeVisible();
@@ -81,7 +114,7 @@ test("101 pedidos: paginação, contadores iguais e estado desconhecido acessív
     const unknown=page.getByRole("region",{name:"Outros estados",exact:true});
     await expect(unknown.getByText("FUTURE_STATE")).toBeVisible();
     await unknown.getByRole("button",{name:`Ver detalhes do pedido ${id}`}).click();
-    await expect(page.getByRole("dialog").getByText("FUTURE_STATE (FUTURE_STATE)")).toBeVisible();
+    await expect(page.getByRole("dialog").getByRole('region', {name:'Resumo do pedido'}).getByText('FUTURE_STATE', {exact:true})).toBeVisible();
     await expect(page.getByRole("dialog").getByRole("button",{name:"Aceitar pedido",exact:true})).toHaveCount(0);
     expect(state.posts).toHaveLength(0); expect(state.reads).toBe(2);
 });
@@ -93,7 +126,7 @@ test("aceite repete chave após falha e atualiza menu, Kanban e dashboard", asyn
     await dialog.getByRole("button",{name:"Confirmar aceite",exact:true}).click();
     await expect(dialog.getByRole("alert")).toBeVisible();
     await dialog.getByRole("button",{name:"Confirmar aceite",exact:true}).click();
-    await expect(dialog.getByText("Aceito (ACCEPTED)")).toBeVisible();
+    await expect(dialog.getByRole('region', {name:'Resumo do pedido'}).getByText('Aceito', {exact:true})).toBeVisible();
     expect(state.posts).toHaveLength(2); expect(state.posts[0].key).toBeTruthy(); expect(state.posts[0].key).toBe(state.posts[1].key);
     expect(state.posts[0].body.expected_version).toBe(3);
     await dialog.getByRole("button",{name:"Fechar",exact:true}).click();
@@ -108,18 +141,19 @@ test("separação explícita com versões distintas até pronto para coleta", as
     const state=await setup(page,[item]); const dialog=await openDetails(page);
     await dialog.getByRole("button",{name:"Iniciar separação",exact:true}).click();
     await dialog.getByRole("region",{name:"Confirmação da operação"}).getByRole("button",{name:"Iniciar separação",exact:true}).click();
-    await expect(dialog.getByText("Em separação (SEPARATING)")).toBeVisible();
+    await expect(dialog.getByRole("region", {name:"Resumo do pedido"}).getByText("Em separação", {exact:true})).toBeVisible();
     await dialog.getByRole("button",{name:"Criar lote",exact:true}).click();
     await dialog.getByRole("button",{name:"Criar lote de atendimento",exact:true}).click();
-    await expect(dialog.getByText("SEPARATING · Versão do lote: 1")).toBeVisible();
+    await expect(dialog.getByRole('region', {name:'Lotes de atendimento'}).getByText('Em separação · Versão do lote: 1')).toBeVisible();
+    await expect(dialog.getByText('3 alocados / 0 separados')).toBeVisible();
     await expect(dialog.getByRole("button",{name:"Marcar lote como pronto",exact:true})).toBeDisabled();
     await dialog.getByRole("button",{name:"Registrar separação do lote",exact:true}).click();
     await dialog.getByRole("spinbutton").fill("3");
     await dialog.getByRole("button",{name:"Registrar separação",exact:true}).click();
-    await expect(dialog.getByText("SEPARATING · Versão do lote: 2")).toBeVisible();
+    await expect(dialog.getByRole('region', {name:'Lotes de atendimento'}).getByText('Em separação · Versão do lote: 2')).toBeVisible();
     await dialog.getByRole("button",{name:"Marcar lote como pronto",exact:true}).click();
     await dialog.getByRole("region",{name:"Confirmação da operação"}).getByRole("button",{name:"Marcar lote como pronto",exact:true}).click();
-    await expect(dialog.getByText("Pronto para coleta (READY_TO_DISPATCH)")).toBeVisible();
+    await expect(dialog.getByRole("region", {name:"Resumo do pedido"}).getByText("Pronto para coleta", {exact:true})).toBeVisible();
     expect(state.posts.map(post=>post.body.expected_version)).toEqual([3,4,1,2]);
     expect(state.posts.every(post=>post.key===undefined)).toBe(true);
     await dialog.getByRole("button",{name:"Fechar",exact:true}).click();
@@ -141,7 +175,7 @@ test("conflito de versão não avança o pedido e permite revisão", async ({pag
     await dialog.getByRole("button",{name:"Aceitar pedido",exact:true}).click();
     await dialog.getByRole("button",{name:"Confirmar aceite",exact:true}).click();
     await expect(dialog.getByRole("alert")).toContainText("Conflito de versão");
-    await expect(dialog.getByText("Aguardando aceite (AWAITING_SUPPLIER_DECISION)")).toBeVisible();
+    await expect(dialog.getByRole("region", {name:"Resumo do pedido"}).getByText("Aguardando aceite", {exact:true})).toBeVisible();
     expect(state.posts).toHaveLength(1);
     await dialog.getByRole("button",{name:"Atualizar pedido e revisar"}).click();
     await expect(dialog.getByRole("region",{name:"Confirmação da operação"})).toHaveCount(0);
@@ -157,6 +191,41 @@ test("portal API e detalhes permanecem utilizáveis no celular", async ({page}) 
     await page.getByRole("button",{name:"Abrir menu"}).click();
     await expect(page.getByRole("dialog",{name:"Menu do fornecedor"}).getByLabel("1 pedido aguardando aceite")).toBeVisible();
 });
+
+for (const width of [1440, 1280, 1024, 768, 390, 360]) {
+    test(`Kanban logístico e informações técnicas em ${width}px`, async ({page}) => {
+        await page.setViewportSize({width, height:900});
+        await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+        const transit = makeOrder(id, 'AWAITING_BUYER_RECEIPT');
+        transit.allowed_actions = [];
+        const delivered = makeOrder('33333333-3333-4333-8333-333333333333', 'DELIVERED');
+        delivered.allowed_actions = [];
+        const state = await setup(page, [transit, delivered, makeOrder('refused', 'REFUSED')]);
+        await page.goto('/fornecedor/pedidos');
+        const board = page.getByRole('region', {name:'Rolagem do quadro de pedidos'});
+        await expect(board.getByRole('heading', {name:'Entregues', exact:true})).toBeAttached();
+        await expect(board.getByText('Entrega informada — aguardando confirmação do comprador')).toBeAttached();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        expect(await board.evaluate(el => getComputedStyle(el).overflowY)).toBe('auto');
+        if (width === 360 || width === 1440) {
+            await board.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+            await page.screenshot({path:`test-results/kanban-${width}.png`, fullPage:true});
+        }
+        await board.getByRole('button', {name:`Ver detalhes do pedido ${id}`}).click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog.getByRole('region', {name:'Resumo do pedido'})).toBeVisible();
+        await expect(dialog.getByRole('region', {name:'Resumo do pedido'}).getByText('Pedido #22222222', {exact:true})).toBeVisible();
+        await expect(dialog.getByRole('button', {name:'Aceitar pedido', exact:true})).toHaveCount(0);
+        await dialog.getByText('Informações técnicas', {exact:true}).click();
+        await dialog.getByRole('button', {name:'Copiar UUID do pedido', exact:true}).click();
+        await expect(dialog.getByText('Identificador copiado.', {exact:true})).toBeVisible();
+        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(id);
+        await page.keyboard.press('Escape');
+        await page.getByRole('tab', {name:/Histórico/}).click();
+        await expect(page.getByRole('tabpanel', {name:/Histórico/}).getByText('Pedido #REFUSED')).toBeVisible();
+        expect(state.posts).toHaveLength(0);
+    });
+}
 test("logout e nova organização limpam pedidos e contadores anteriores", async ({page}) => {
     const state=await setup(page,[makeOrder()]);
     await page.goto("/fornecedor");
@@ -179,6 +248,6 @@ test("prazo expirado bloqueia aceite sem inventar transição de estado", async 
     const state=await setup(page,[item]); const dialog=await openDetails(page);
     await expect(dialog.getByRole("timer")).toHaveText("Prazo encerrado");
     await expect(dialog.getByRole("button",{name:"Aceitar pedido",exact:true})).toHaveCount(0);
-    await expect(dialog.getByText("Aguardando aceite (AWAITING_SUPPLIER_DECISION)")).toBeVisible();
+    await expect(dialog.getByRole("region", {name:"Resumo do pedido"}).getByText("Aguardando aceite", {exact:true})).toBeVisible();
     expect(state.posts).toHaveLength(0);
 });

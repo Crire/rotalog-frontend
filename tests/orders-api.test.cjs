@@ -26,6 +26,29 @@ const page = (items, total = items.length, number = 1) => ({items,total,page:num
     assert.equal(adapter.cents('0.10') * 3n, adapter.cents('0.30'));
     assert.equal(adapter.formatMoney('0.30'), 'R$ 0,30');
     assert.throws(() => adapter.cents('0.001'));
+    for (const [state, label] of Object.entries({AWAITING_SUPPLIER_DECISION:'Aguardando aceite', ACCEPTED:'Aceito', PARTIALLY_ACCEPTED:'Aceito parcialmente', SEPARATING:'Em separação', READY_TO_DISPATCH:'Pronto para coleta', IN_TRANSIT:'Em transporte', AWAITING_BUYER_RECEIPT:'Entrega informada — aguardando confirmação do comprador', DELIVERED:'Entregue', REFUSED:'Recusado', CANCELLED:'Cancelado', ACCEPTANCE_EXPIRED:'Aceite expirado', FUTURE_STATE:'FUTURE_STATE'})) {
+        assert.equal(adapter.orderStateLabel(state), label);
+        assert.equal(adapter.adaptOrder(makeOrder('one', state)).stateLabel, label);
+        assert.equal(adapter.adaptOrder(makeOrder('one', state)).state, state);
+    }
+    for (const [state, stage] of Object.entries({IN_TRANSIT:'transport', AWAITING_BUYER_RECEIPT:'transport', DELIVERED:'delivered'})) {
+        const order = makeOrder('22222222-2222-4222-8222-222222222222', state);
+        assert.equal(adapter.adaptOrder(order).stage, stage);
+        assert.equal(order.state, state);
+        assert.equal(adapter.acceptanceOpen(order), false);
+    }
+    assert.equal(adapter.shortOrderId('22222222-2222-4222-8222-222222222222'), '22222222…22222222');
+    assert.equal(adapter.shortOrderId('PED-001'), 'PED-001');
+    const visualOrder = makeOrder('f1e10a37-78d7-4d53-828d-5122922dff46');
+    const collision = makeOrder('f1e10a37-1234-4d53-828d-5122922dff46');
+    assert.equal(adapter.orderLabel(visualOrder), 'Pedido #F1E10A37');
+    assert.equal(adapter.orderLabel(visualOrder, [visualOrder, collision]), 'Pedido #F1E10A3778D7');
+    assert.equal(adapter.orderLabel(visualOrder, [collision, visualOrder]), 'Pedido #F1E10A3778D7');
+    assert.equal(adapter.orderLabel(collision, [visualOrder, collision]), 'Pedido #F1E10A371234');
+    assert.equal(adapter.orderLabel({...visualOrder, order_number:' RL-2026-001 '}), 'Pedido RL-2026-001');
+    assert.equal(adapter.orderLabel({...visualOrder, order_number:' '}), 'Pedido #F1E10A37');
+    assert.equal(adapter.orderLabel({...visualOrder, order_number:null}), 'Pedido #F1E10A37');
+    assert.equal(visualOrder.id, 'f1e10a37-78d7-4d53-828d-5122922dff46');
     for (const [state, stage] of Object.entries({AWAITING_SUPPLIER_DECISION:'new',ACCEPTED:'accepted',PARTIALLY_ACCEPTED:'accepted',SEPARATING:'separating',READY_TO_DISPATCH:'ready',REFUSED:'completed',CANCELLED:'completed',ACCEPTANCE_EXPIRED:'completed',FUTURE_STATE:'unknown'})) {
         assert.equal(adapter.adaptOrder(makeOrder('one',state)).stage,stage);
     }

@@ -112,3 +112,36 @@ As melhorias visuais do Kanban, incluindo responsividade e redução da exibiç�
 ---
 
 **Observação:** este documento registra dependências de integração. Não significa que os endpoints propostos já estejam disponíveis.
+
+## Preparação implementada no Web
+
+O modo API apresenta seis colunas e reconhece, apenas para exibição, os estados
+propostos `IN_TRANSIT`, `AWAITING_BUYER_RECEIPT` e `DELIVERED`. A confirmação do
+comprador pendente aparece em Em transporte. Estados desconhecidos continuam
+acessíveis em Outros estados. Nenhum comando logístico foi adicionado ao fornecedor.
+
+Enquanto o contrato não informar a classificação de arquivamento pelo servidor,
+`DELIVERED` permanece ativo. Recusados, cancelados e expirados continuam no Histórico.
+Não há cálculo local dos sete dias, datas presumidas ou mudança de pedidos persistidos.
+A futura integração deve adicionar campos confirmados pelo Backend e testes de contrato
+antes de consumir qualquer classificação de arquivamento.
+
+Cartões, Dashboard e detalhes utilizam a função `orderLabel`: na ausência de número
+comercial, exibem os primeiros oito caracteres do UUID, em maiúsculas, como
+`Pedido #F1E10A37`. Essa abreviação não garante unicidade, não substitui o UUID e não
+é usada nas requisições. Os detalhes permitem consultar e copiar os UUIDs completos.
+
+Quando dois pedidos carregados da organização compartilham o prefixo, a função
+expande o código em blocos de quatro caracteres até diferenciá-los. A comparação
+usa a lista completa carregada, antes dos filtros, ordenação ou limite do Dashboard.
+A chegada de outro pedido pode expandir o rótulo; colisões com pedidos não carregados
+não podem ser detectadas. Nenhuma associação ou autorização utiliza esse rótulo.
+
+Solicitação ao Backend: fornecer `order_number`, gerado pelo servidor, estável e
+garantido como único por restrição no banco, nas respostas de listagem e detalhes.
+O Web já aceita esse campo opcional e o prioriza quando não vazio, sem gerar números
+sequenciais locais. O campo continua proposto, sem confirmação no contrato atual.
+
+O Kanban mantém uma única área de rolagem vertical e horizontal, com colunas de
+largura legível e controles que se reorganizam em telas pequenas. O modo mock e
+seus serviços permanecem separados.

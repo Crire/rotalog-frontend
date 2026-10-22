@@ -21,6 +21,8 @@ export type Fulfillment = {
     lines: { id: string; order_item_id: string; allocated_quantity: number; separated_quantity: number; dispatched_quantity: number }[];
 };
 export type ApiOrder = {
+    // Proposed optional backend field; absent in the current confirmed contract.
+    order_number?: string | null;
     id: string; purchase_id: string; buyer_organization_id: string; supplier_organization_id: string;
     warehouse_id: string; state: string; version: number; accepts_partial: boolean;
     acceptance_deadline: string; currency: "BRL"; total: string; cancellation_reason: string | null;
