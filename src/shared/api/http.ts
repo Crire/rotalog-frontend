@@ -14,7 +14,7 @@ export class ApiError extends Error {
     }
 }
 
-export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}, responseType: "json" | "blob" = "json"): Promise<T> {
     let response: Response;
     try {
         response = await fetch(`${apiUrl}${path}`, { ...options, credentials: "include", cache: "no-store" });
@@ -35,5 +35,5 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
         } catch { /* Non-JSON errors still preserve their HTTP status. */ }
         throw new ApiError(response.status, metadata);
     }
-    return response.status === 204 ? undefined as T : response.json() as Promise<T>;
+    return response.status === 204 ? undefined as T : (responseType === "blob" ? response.blob() : response.json()) as Promise<T>;
 }

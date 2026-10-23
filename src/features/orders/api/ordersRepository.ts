@@ -57,7 +57,7 @@ export class OrdersRepository {
         if (!this.enabled) return Promise.resolve();
         this.publish({ ...this.state, loading: true, error: null });
         this.loading = this.fetchAll().then(orders => this.publish({ orders, loading: false, error: null, loaded: true }))
-            .catch(error => this.publish({ orders: [], loading: false, error: orderError(error), loaded: false }))
+            .catch(error => this.publish({ ...this.state, loading: false, error: orderError(error), loaded: false }))
             .finally(() => { this.loading = null; });
         return this.loading;
     };

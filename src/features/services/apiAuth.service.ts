@@ -47,12 +47,12 @@ export function refreshSession(): Promise<void> {
         .finally(() => { refreshPromise = null; });
     return refreshPromise;
 }
-export async function authenticatedRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function authenticatedRequest<T>(path: string, options: RequestInit = {}, responseType: "json" | "blob" = "json"): Promise<T> {
     if (!accessToken || Date.now() >= expiresAt - 30_000) await refreshSession();
     const send = () => {
         const headers = new Headers(options.headers);
         headers.set("Authorization", `Bearer ${accessToken}`);
-        return request<T>(path, { ...options, headers });
+        return request<T>(path, { ...options, headers }, responseType);
     };
     const sentToken = accessToken;
     try { return await send(); }

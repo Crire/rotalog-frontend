@@ -3,6 +3,7 @@ import {ApiError} from "../../../shared/api/http";
 import {OffersRepository, type Offer, type Warehouse} from "../../products/api/offersRepository";
 
 export type Inventory = {
+    product_id?:string | null; product_name?:string | null; offer_active?:boolean | null;
     id:string; offer_id:string; warehouse_id:string; external_physical_quantity:number | null;
     external_sellable_quantity:number; rotalog_reserved_not_reflected_quantity:number;
     safety_stock_quantity:number; effective_sellable_quantity:number; version:number;

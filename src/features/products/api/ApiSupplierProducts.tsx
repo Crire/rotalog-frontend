@@ -29,6 +29,14 @@ function SessionCatalog({organizationId}: {organizationId: string}) {
     function retry() {setResult(null); setError(null); setAttempt(value => value + 1);}
     return <div className="flex w-full min-w-0 flex-col gap-4">
         <PageHeader title="Produtos" subtitle="Consulte os produtos publicados no catálogo oficial do RotaLog." actions={<Link to="/fornecedor/estoque" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium">Consultar estoque das minhas ofertas</Link>} />
+        <section aria-label="Como cadastrar um item para venda" className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">
+            <h2 className="font-semibold">Como cadastrar um item para venda</h2>
+            <ol className="mt-2 list-inside list-decimal space-y-1">
+                <li>Selecione uma variante publicada no catálogo. Produtos novos são cadastrados e publicados pela administração; na demo, essa preparação pode ser feita pelo Swagger.</li>
+                <li>Em Minhas ofertas, crie sua oferta com depósito confirmado, preço e quantidade mínima.</li>
+                <li>Acesse <Link to="/fornecedor/estoque" className="font-semibold underline">Estoque</Link> e registre o saldo vendável inicial com justificativa. Criar oferta não cria estoque.</li>
+            </ol>
+        </section>
         <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Catálogo oficial">
             <header className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-base font-semibold">Catálogo oficial {result && <span className="text-sm font-normal text-slate-500">({result.total} produtos)</span>}</h2>
             <form className="flex w-full min-w-0 flex-wrap gap-2 sm:w-auto" onSubmit={event => {event.preventDefault(); changeQuery(1, search.trim());}}><label className="sr-only" htmlFor="catalog-search">Pesquisar por nome</label><input id="catalog-search" type="search" maxLength={200} value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar por nome…" className="w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-64" /><button className={button} type="submit">Pesquisar</button><button className={button} type="button" onClick={() => {setSearch(""); changeQuery(1, "");}}>Limpar</button></form></header>

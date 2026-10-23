@@ -54,7 +54,7 @@ export function SupplierOffers({organizationId}:{organizationId:string}) {
             } else if(selection.kind === "edit") await repository.update(selection.offer,command.price,command.quantity);
             else await repository.pause(selection.offer);
             if(!mounted.current)return;
-            setSuccess(selection.kind === "create" ? "Oferta criada com sucesso." : selection.kind === "edit" ? "Oferta atualizada com sucesso." : "Oferta pausada. Ela não aparece mais na lista de ofertas ativas.");
+            setSuccess(selection.kind === "create" ? "Oferta criada com sucesso, com saldo inicial zero. Acesse Estoque para ajustar o vendável e disponibilizar a oferta para compra. Não é necessário cadastrar a oferta novamente." : selection.kind === "edit" ? "Oferta atualizada com sucesso." : "Oferta pausada. Ela não aparece mais na lista de ofertas ativas.");
             setSelection(null);refresh(1);
         } catch(failure) {
             if(!mounted.current)return;

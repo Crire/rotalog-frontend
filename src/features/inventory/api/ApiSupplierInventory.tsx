@@ -54,7 +54,7 @@ function SessionInventory({organizationId}:{organizationId:string}) {
         } catch(failure) {if(mounted.current){setMutationError(inventoryError(failure));setFailed(true);}}
         finally{submitting.current=false;if(mounted.current)setPending(false);}
     }
-    const name=(item:Inventory)=>result?.refs.offers.find(offer=>offer.id===item.offer_id)?.product_name??missingProduct;
+    const name=(item:Inventory)=>item.product_name??result?.refs.offers.find(offer=>offer.id===item.offer_id)?.product_name??missingProduct;
     const warehouseName=(item:Inventory)=>result?.refs.warehouses.find(warehouse=>warehouse.id===item.warehouse_id)?.name??"Depósito não disponível";
     const unresolved=result?.page.items.filter(item=>!result.refs.offers.some(offer=>offer.id===item.offer_id))??[];
     return <div className="flex w-full min-w-0 flex-col gap-4">

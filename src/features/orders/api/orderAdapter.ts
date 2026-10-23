@@ -16,7 +16,12 @@ const states: Record<string, { stage: ApiStage; label: string }> = {
     PARTIALLY_ACCEPTED: { stage: "accepted", label: "Aceito parcialmente" },
     SEPARATING: { stage: "separating", label: "Em separação" },
     READY_TO_DISPATCH: { stage: "ready", label: "Pronto para coleta" },
-    // Proposed logistics contracts: display only; no supplier commands or local archiving.
+    PARTIALLY_DISPATCHED: { stage: "transport", label: "Despachado parcialmente" },
+    DISPATCHED: { stage: "transport", label: "Despachado — acompanhar rota" },
+    PARTIALLY_DELIVERED: { stage: "transport", label: "Entregue parcialmente" },
+    COMPLETED: { stage: "completed", label: "Concluído" },
+    CLOSED: { stage: "completed", label: "Encerrado" },
+    // Compatibilidade de leitura com versões anteriores; não gravar estes estados.
     IN_TRANSIT: { stage: "transport", label: "Em transporte" },
     AWAITING_BUYER_RECEIPT: { stage: "transport", label: "Entrega informada — aguardando confirmação do comprador" },
     DELIVERED: { stage: "delivered", label: "Entregue" },

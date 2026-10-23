@@ -27,7 +27,13 @@ export type ApiOrder = {
     warehouse_id: string; state: string; version: number; accepts_partial: boolean;
     acceptance_deadline: string; currency: "BRL"; total: string; cancellation_reason: string | null;
     items: OrderItem[]; allowed_actions: string[]; is_synthetic: true; fulfillments: Fulfillment[];
+    created_at?: string; updated_at?: string;
+    delivery_routes?: DeliveryRouteSummary[];
 };
+export type DeliveryRouteSummary = { id: string; state: string; version: number; driver_id: string; vehicle_id: string; updated_at: string; is_synthetic: true };
+export type DeliveryRoute = DeliveryRouteSummary & { stops: { id: string; kind: string; state: string; supplier_order_id: string | null; attempt_id: string | null; attempt_state: string | null }[] };
+export type TimelinePage = { items: { id: string; kind: string; occurred_at: string }[]; total: number };
+export type DeliveryProof = { id: string; validation_state: string; contestation_deadline: string | null; evidence: { receiver_name?: string; receiver_role?: string; visible_condition?: string; package_count?: number; evidence: { id: string; kind: string; sha256: string }[] } };
 export type OrderPage = { items: ApiOrder[]; total: number; page: number; page_size: number; is_synthetic: true; label: string };
 export type Acceptance = { expected_version: number; lines: { order_item_id: string; accepted_quantity: number }[] };
 export type Allocation = { expected_version: number; lines: { order_item_id: string; allocated_quantity: number }[] };

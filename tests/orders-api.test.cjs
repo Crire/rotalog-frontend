@@ -53,6 +53,10 @@ const page = (items, total = items.length, number = 1) => ({items,total,page:num
         assert.equal(adapter.adaptOrder(makeOrder('one',state)).stage,stage);
     }
     assert.equal(adapter.acceptanceOpen(makeOrder(), Date.parse('2100-01-01')), false);
+    for (const state of ['PARTIALLY_DISPATCHED', 'DISPATCHED', 'PARTIALLY_DELIVERED']) {
+        assert.equal(adapter.adaptOrder(makeOrder('one', state)).stage, 'transport');
+        assert.equal(adapter.acceptanceOpen(makeOrder('one', state)), false);
+    }
     assert.equal(adapter.acceptanceOpen(makeOrder('one',undefined,{allowed_actions:[]})), false);
     assert.throws(() => adapter.assertQuantity(1.5,3));
     let calls = 0;
@@ -78,6 +82,17 @@ const page = (items, total = items.length, number = 1) => ({items,total,page:num
         await failed.refresh(); assert.equal(failed.snapshot().loaded,false); assert.equal(failed.snapshot().orders.length,0);
     }
     let posts = []; let fail = true;
+    let unavailable = false;
+    const retained = new OrdersRepository('org', async () => {
+        if (unavailable) throw new Error('network');
+        return page([makeOrder('persisted', 'DISPATCHED')]);
+    });
+    await retained.refresh();
+    unavailable = true;
+    await retained.refresh();
+    assert.equal(retained.snapshot().orders[0].id, 'persisted');
+    assert.equal(retained.snapshot().loaded, false);
+    assert.ok(retained.snapshot().error);
     const writable = new OrdersRepository('org',async(path,options)=>{
         if(options.method==='POST') { posts.push({path,options}); if(fail) throw new Error('network'); return makeOrder(); }
         return page([makeOrder()]);

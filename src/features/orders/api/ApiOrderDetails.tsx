@@ -5,6 +5,7 @@ import { acceptanceOpen, adaptOrder, formatMoney, shortOrderId, orderLabel, orde
 import { orderError, remainingAllocation } from "./ordersRepository";
 import { useApiOrders } from "./ordersContext";
 import { ApiOrderDeadline } from "./ApiOrderDeadline";
+import { ApiOrderDelivery } from "./ApiOrderDelivery";
 
 type Action = "accept" | "refuse" | "start" | "allocate" | "separate" | "ready";
 type Selection = { action: Action; fulfillmentId?: string; version: number; quantities: number[] };
@@ -24,12 +25,15 @@ function TechnicalId({ label, value }: { label: string; value: string }) {
 }
 
 export function ApiOrderDetails({ id, onClose }: { id: string; onClose: () => void }) {
-    const { repository, orders } = useApiOrders();
-    const [order, setOrder] = useState<ApiOrder | null>(null);
+    const { repository, orders, error: refreshError } = useApiOrders();
+    const [detailOrder, setOrder] = useState<ApiOrder | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selection, setSelection] = useState<Selection | null>(null);
     const [pending, setPending] = useState(false);
+    const latestOrder = orders.find(item => item.id === id);
+    // Derivação evita render extra e preserva a versão que está sendo revisada.
+    const order = !selection && !pending && latestOrder && (!detailOrder || latestOrder.version >= detailOrder.version) ? latestOrder : detailOrder;
     const confirming = useRef(false);
     const dialog = useRef<HTMLDialogElement>(null);
     const titleId = useId();
@@ -56,6 +60,7 @@ export function ApiOrderDetails({ id, onClose }: { id: string; onClose: () => vo
 
     function choose(action: Action, fulfillment?: Fulfillment) {
         if (!order) return;
+        setOrder(order);
         setError(null);
         const quantities = action === "refuse" ? order.items.map(() => 0)
             : action === "allocate" ? order.items.map(item => remainingAllocation(order, item.id))
@@ -125,7 +130,8 @@ export function ApiOrderDetails({ id, onClose }: { id: string; onClose: () => vo
                 <div className="mt-4 flex flex-wrap gap-2"><button disabled={pending} className={button} onClick={() => setSelection(null)}>Voltar</button><button disabled={pending} aria-busy={pending} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={() => void confirm()}>{pending ? "Processando…" : titles[selection.action]}</button></div>
             </section>}
             <details className="mt-5 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer font-semibold">Informações técnicas</summary><p className="mt-2 text-xs text-slate-500">Estado: {orderStateLabel(order.state)} · Versão do pedido: {order.version}</p><dl className="mt-3 grid gap-3 sm:grid-cols-2"><TechnicalId label="UUID do pedido" value={order.id} /><TechnicalId label="UUID da compra" value={order.purchase_id} /><TechnicalId label="UUID da organização compradora" value={order.buyer_organization_id} /><TechnicalId label="UUID da organização fornecedora" value={order.supplier_organization_id} /><TechnicalId label="UUID do depósito" value={order.warehouse_id} />{order.items.map(item => <TechnicalId key={item.id} label={`UUID do item: ${item.product.name}`} value={item.id} />)}{order.fulfillments.map(batch => <div key={batch.id}><TechnicalId label={`UUID do lote ${shortOrderId(batch.id)}`} value={batch.id} /><p className="text-xs">Versão do lote: {batch.version}</p><dl>{batch.lines.map(line => <TechnicalId key={line.id} label="UUID da linha do lote" value={line.id} />)}</dl></div>)}</dl></details>
-            <p className="mt-4 text-xs text-slate-500">SIMULAÇÃO — dados sintéticos do Backend. Datas de criação e conclusão e estado financeiro não são fornecidos por este contrato.</p>
+            <ApiOrderDelivery key={order.id} order={order} refreshError={refreshError} />
+            <p className="mt-4 text-xs text-slate-500">SIMULAÇÃO — dados sintéticos. Entrega comprovada não significa liberação financeira ou encerramento da janela de contestação.</p>
         </>}
     </dialog>, document.body);
 }
